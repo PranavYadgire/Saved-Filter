@@ -891,51 +891,90 @@ button:disabled {
   background: #ffebe6;
 }
 
-/* REMOVE DUPLICATE THREE-DOT MENU */
-
-.saved-item .item-menu-wrapper {
-  display: none !important;
-}
-
-/* KEEP ONLY ONE THREE-DOT BUTTON */
+/* FIX THREE DOT CLICKABILITY */
 
 .saved-item .actions {
   display: flex !important;
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+  pointer-events: auto !important;
+}
+
+.saved-item .actions button.icon-button {
+  display: flex !important;
   align-items: center;
   justify-content: center;
-}
 
-/* REMOVE UNWANTED CROSS BUTTONS */
-
-.saved-list > .list-header .icon-button,
-.saved-list > .list-header button[title="Close"],
-.header button[title="Close"] {
-  display: none !important;
-}
-
-/* FILTER ROW CLEANUP */
-
-.saved-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* THREE DOT BUTTON */
-
-.saved-item .actions .icon-button {
   width: 36px;
+  min-width: 36px;
   height: 36px;
+
+  position: relative;
+  z-index: 21;
+
   border: none;
   border-radius: 6px;
+
   background: transparent;
   color: #44546f;
-  font-size: 22px;
+
+  cursor: pointer;
+  pointer-events: auto !important;
 }
 
-.saved-item .actions .icon-button:hover {
+.saved-item .actions button.icon-button:hover {
   background: #f1f2f4;
+}
+
+/* MENU MUST APPEAR ABOVE FILTER ROW */
+
+.saved-item .item-menu {
+  position: absolute;
+  top: 45px;
+  right: 8px;
+
+  z-index: 9999;
+
+  display: flex;
+  flex-direction: column;
+
+  width: 145px;
+  padding: 5px;
+
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
+
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(9, 30, 66, 0.18);
+}
+
+.saved-item .item-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  width: 100%;
+  min-height: 38px;
+
+  padding: 9px 10px;
+
+  border: none;
+  border-radius: 5px;
+
+  background: transparent;
+  color: #172b4d;
+
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.saved-item .item-menu button:hover {
+  background: #f1f2f4;
+}
+
+.saved-item .item-menu button.delete-menu-item {
+  color: #c9372c;
 }
 
 }
