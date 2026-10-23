@@ -1,11 +1,17 @@
 
+/* =========================================
+   SAVED FILTER VIEWS
+   TRELLO CONNECTION
+========================================= */
+
 const STORAGE_KEY = "savedFilterViews";
 
 let trelloClient = null;
 
-/**
- * Initialize Trello Power-Up client.
- */
+/* =========================================
+   INITIALIZE TRELLO
+========================================= */
+
 export function initializeTrello() {
   if (!window.TrelloPowerUp) {
     console.warn("Trello Power-Up client is not loaded.");
@@ -19,29 +25,29 @@ export function initializeTrello() {
   return trelloClient;
 }
 
-/**
- * Check whether the app is running inside Trello.
- */
+/* =========================================
+   CHECK TRELLO
+========================================= */
+
 export function isTrelloAvailable() {
   return Boolean(window.TrelloPowerUp);
 }
 
-/**
- * Get current Trello board information.
- */
+/* =========================================
+   BOARD INFORMATION
+========================================= */
+
 export async function getBoardInfo() {
   const t = initializeTrello();
 
-  if (!t) {
-    return null;
-  }
+  if (!t) return null;
 
   try {
     const board = await t.board("id", "name");
 
     return {
       id: board.id,
-      name: board.name
+      name: board.name,
     };
   } catch (error) {
     console.error("Unable to load Trello board:", error);
@@ -49,15 +55,14 @@ export async function getBoardInfo() {
   }
 }
 
-/**
- * Load real Trello cards.
- */
+/* =========================================
+   LOAD REAL BOARD CARDS
+========================================= */
+
 export async function getTrelloCards() {
   const t = initializeTrello();
 
-  if (!t) {
-    return [];
-  }
+  if (!t) return [];
 
   try {
     const cards = await t.cards(
@@ -68,20 +73,47 @@ export async function getTrelloCards() {
       "idMembers",
       "labels",
       "due",
+      "dueComplete",
       "closed",
-      "url"
+      "url",
+      "attachments",
+      "badges",
+      "checklists",
+      "customFieldItems"
     );
 
-    return cards.map(card => ({
+    return cards.map((card) => ({
       id: card.id,
-      title: card.name,
+
+      title: card.name || "",
+
       description: card.desc || "",
-      listId: card.idList,
+
+      listId: card.idList || "",
+
       members: card.idMembers || [],
-      labels: (card.labels || []).map(label => label.name),
-      due: card.due || "",
+
+      labels: (card.labels || []).map((label) => ({
+        id: label.id,
+        name: label.name,
+        color: label.color,
+      })),
+
+      due: card.due || null,
+
+      dueComplete: Boolean(card.dueComplete),
+
       closed: Boolean(card.closed),
-      url: card.url
+
+      url: card.url || "",
+
+      attachments: card.attachments || [],
+
+      badges: card.badges || {},
+
+      checklists: card.checklists || [],
+
+      customFieldItems: card.customFieldItems || [],
     }));
   } catch (error) {
     console.error("Unable to load Trello cards:", error);
@@ -89,24 +121,27 @@ export async function getTrelloCards() {
   }
 }
 
-/**
- * Load board lists.
- */
+/* =========================================
+   LOAD BOARD LISTS
+========================================= */
+
 export async function getTrelloLists() {
   const t = initializeTrello();
 
-  if (!t) {
-    return [];
-  }
+  if (!t) return [];
 
   try {
-    const lists = await t.lists("id", "name", "closed");
+    const lists = await t.lists(
+      "id",
+      "name",
+      "closed"
+    );
 
     return lists
-      .filter(list => !list.closed)
-      .map(list => ({
+      .filter((list) => !list.closed)
+      .map((list) => ({
         id: list.id,
-        name: list.name
+        name: list.name,
       }));
   } catch (error) {
     console.error("Unable to load Trello lists:", error);
@@ -114,23 +149,22 @@ export async function getTrelloLists() {
   }
 }
 
-/**
- * Load board members.
- */
+/* =========================================
+   LOAD BOARD MEMBERS
+========================================= */
+
 export async function getTrelloMembers() {
   const t = initializeTrello();
 
-  if (!t) {
-    return [];
-  }
+  if (!t) return [];
 
   try {
     const members = await t.members("all");
 
-    return members.map(member => ({
+    return members.map((member) => ({
       id: member.id,
-      name: member.fullName,
-      username: member.username
+      name: member.fullName || member.username || "",
+      username: member.username || "",
     }));
   } catch (error) {
     console.error("Unable to load Trello members:", error);
@@ -138,15 +172,43 @@ export async function getTrelloMembers() {
   }
 }
 
-/**
- * Load saved filters from Trello board storage.
- */
+/* =========================================
+   LOAD BOARD LABELS
+========================================= */
+
+export async function getTrelloLabels() {
+  const t = initializeTrello();
+
+  if (!t) return [];
+
+  try {
+    const labels = await t.board(
+      "id",
+      "name",
+      "labelNames"
+    );
+
+    return Object.entries(labels.labelNames || {})
+      .filter(([name]) => Boolean(name))
+      .map(([name, color]) => ({
+        name,
+        color: color || "",
+      }));
+  } catch (error) {
+    console.error("Unable to load Trello labels:", error);
+    return [];
+  }
+}
+
+/* =========================================
+   LOAD SAVED FILTER VIEWS
+   BOARD SHARED STORAGE
+========================================= */
+
 export async function loadSavedViews() {
   const t = initializeTrello();
 
-  if (!t) {
-    return [];
-  }
+  if (!t) return [];
 
   try {
     const views = await t.get(
@@ -162,14 +224,22 @@ export async function loadSavedViews() {
   }
 }
 
-/**
- * Save filters to Trello board storage.
- */
+/* =========================================
+   SAVE FILTER VIEWS
+   BOARD SHARED STORAGE
+========================================= */
+
 export async function saveSavedViews(views) {
   const t = initializeTrello();
 
   if (!t) {
-    throw new Error("Trello is not available.");
+    throw new Error(
+      "Trello is not available. Open this Power-Up inside Trello."
+    );
+  }
+
+  if (!Array.isArray(views)) {
+    throw new Error("Saved views must be an array.");
   }
 
   await t.set(
@@ -182,15 +252,215 @@ export async function saveSavedViews(views) {
   return views;
 }
 
-/**
- * Open a real Trello card.
- */
+/* =========================================
+   OPEN TRELLO CARD
+========================================= */
+
 export async function openTrelloCard(cardId) {
   const t = initializeTrello();
 
-  if (!t) {
-    return;
-  }
+  if (!t || !cardId) return;
 
-  await t.showCard(cardId);
+  try {
+    await t.showCard(cardId);
+  } catch (error) {
+    console.error("Unable to open Trello card:", error);
+  }
+}
+
+/* =========================================
+   GET CURRENT MEMBER
+========================================= */
+
+export async function getCurrentMember() {
+  const t = initializeTrello();
+
+  if (!t) return null;
+
+  try {
+    const member = await t.member(
+      "id",
+      "fullName",
+      "username"
+    );
+
+    return {
+      id: member.id,
+      name: member.fullName || "",
+      username: member.username || "",
+    };
+  } catch (error) {
+    console.error("Unable to load current member:", error);
+    return null;
+  }
+}
+
+/* =========================================
+   GET CARD COUNTS
+========================================= */
+
+export async function getBoardCardCounts() {
+  const cards = await getTrelloCards();
+
+  return {
+    total: cards.length,
+
+    open: cards.filter(
+      (card) => !card.closed
+    ).length,
+
+    completed: cards.filter(
+      (card) => card.closed
+    ).length,
+  };
+}
+
+/* =========================================
+   APPLY FILTER TO REAL BOARD CARDS
+========================================= */
+
+export function filterTrelloCards(cards, filters = {}) {
+  const today = new Date();
+
+  today.setHours(0, 0, 0, 0);
+
+  const weekEnd = new Date(today);
+
+  weekEnd.setDate(today.getDate() + 7);
+
+  return cards.filter((card) => {
+    /* MEMBER FILTER */
+
+    if (filters.member && filters.member !== "any") {
+      if (
+        filters.member === "me" &&
+        filters.currentMemberId
+      ) {
+        if (
+          !card.members.includes(filters.currentMemberId)
+        ) {
+          return false;
+        }
+      } else if (filters.member !== "me") {
+        if (!card.members.includes(filters.member)) {
+          return false;
+        }
+      }
+    }
+
+    /* DUE DATE FILTER */
+
+    if (filters.dueDate && filters.dueDate !== "any") {
+      const due = card.due
+        ? new Date(card.due)
+        : null;
+
+      if (filters.dueDate === "none" && due) {
+        return false;
+      }
+
+      if (filters.dueDate !== "none" && !due) {
+        return false;
+      }
+
+      if (due) {
+        due.setHours(0, 0, 0, 0);
+
+        if (
+          filters.dueDate === "today" &&
+          due.getTime() !== today.getTime()
+        ) {
+          return false;
+        }
+
+        if (
+          filters.dueDate === "week" &&
+          (due < today || due >= weekEnd)
+        ) {
+          return false;
+        }
+
+        if (
+          filters.dueDate === "overdue" &&
+          (due >= today || card.dueComplete)
+        ) {
+          return false;
+        }
+      }
+    }
+
+    /* LABEL FILTER */
+
+    if (filters.labels && filters.labels.length > 0) {
+      const cardLabels = card.labels.map(
+        (label) => label.name
+      );
+
+      const hasLabel = filters.labels.some(
+        (label) => cardLabels.includes(label)
+      );
+
+      if (!hasLabel) {
+        return false;
+      }
+    }
+
+    /* CARD TYPE FILTER */
+
+    if (filters.cardType === "open" && card.closed) {
+      return false;
+    }
+
+    if (
+      filters.cardType === "closed" &&
+      !card.closed
+    ) {
+      return false;
+    }
+
+    /* KEYWORD FILTER */
+
+    if (filters.keyword && filters.keyword.trim()) {
+      const keyword = filters.keyword
+        .trim()
+        .toLowerCase();
+
+      const title = card.title.toLowerCase();
+
+      const description = card.description.toLowerCase();
+
+      if (
+        !title.includes(keyword) &&
+        !description.includes(keyword)
+      ) {
+        return false;
+      }
+    }
+
+    /* ATTACHMENT FILTER */
+
+    if (filters.attachment === "yes") {
+      if (!card.attachments.length) {
+        return false;
+      }
+    }
+
+    if (filters.attachment === "no") {
+      if (card.attachments.length) {
+        return false;
+      }
+    }
+
+    /* CHECKLIST FILTER */
+
+    if (filters.checklist !== "any") {
+      const checklists = card.checklists || [];
+
+      if (!checklists.length) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 }
