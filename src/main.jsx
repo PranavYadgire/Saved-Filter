@@ -1,78 +1,989 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { createRoot } from 'react-dom/client';
-import './styles.css';
 
-const SEED_VIEWS = [
-  { id: 'v1', name: 'My Tasks', members: 'me', dueDate: 'any', labels: [], cardType: 'all', checklist: 'any', attachment: 'any', keyword: '', customFields: 'any' },
-  { id: 'v2', name: 'Due This Week', members: 'any', dueDate: 'week', labels: [], cardType: 'all', checklist: 'any', attachment: 'any', keyword: '', customFields: 'any' },
-  { id: 'v3', name: 'Bugs', members: 'any', dueDate: 'any', labels: ['Bug'], cardType: 'all', checklist: 'any', attachment: 'any', keyword: '', customFields: 'any' },
-  { id: 'v4', name: 'High Priority', members: 'any', dueDate: 'any', labels: ['High Priority'], cardType: 'all', checklist: 'any', attachment: 'any', keyword: '', customFields: 'any' }
-];
-const INITIAL_CARDS = [
-  { id: 'c1', title: 'Design new onboarding flow', list: 'To Do', labels: ['Design', 'High Priority'], members: ['SK'], due: '2026-10-24', dueLabel: 'Oct 24', checklist: '2/6', comments: 2, attachments: 1, description: 'Plan and design the new onboarding flow for new customers.' },
-  { id: 'c2', title: 'API integration for payments', list: 'To Do', labels: ['Bug'], members: ['PS'], due: '2026-10-28', dueLabel: 'Oct 28', checklist: '0/5', comments: 0, attachments: 0, description: 'Fix payment API integration and validate responses.' },
-  { id: 'c3', title: 'Write user documentation', list: 'To Do', labels: ['Docs', 'Low Priority'], members: ['AK'], due: '', dueLabel: '', checklist: '', comments: 1, attachments: 0, description: 'Update user documentation.' },
-  { id: 'c4', title: 'QA test cases', list: 'To Do', labels: ['Bug'], members: ['MJ'], due: '2026-10-20', dueLabel: 'Oct 20', checklist: '1/8', comments: 0, attachments: 0, description: 'Prepare and run QA test cases.' },
-  { id: 'c5', title: 'Set up analytics events', list: 'To Do', labels: ['Analytics'], members: ['SK'], due: '', dueLabel: '', checklist: '', comments: 3, attachments: 0, description: 'Configure analytics events.' },
-  { id: 'c6', title: 'Implement dashboard UI', list: 'In Progress', labels: ['Feature'], members: ['AK'], due: '2026-10-25', dueLabel: 'Oct 25', checklist: '2/6', comments: 0, attachments: 0, description: 'Build the dashboard interface.' },
-  { id: 'c7', title: 'Fix login issue', list: 'In Progress', labels: ['Bug', 'High Priority'], members: ['PS'], due: '2026-10-23', dueLabel: 'Oct 23', checklist: '', comments: 4, attachments: 0, description: 'Investigate login bug and session expiry.' },
-  { id: 'c8', title: 'Update pricing page', list: 'In Progress', labels: ['Design'], members: ['SK'], due: '2026-10-29', dueLabel: 'Oct 29', checklist: '1/3', comments: 0, attachments: 0, description: 'Update pricing page design.' },
-  { id: 'c9', title: 'Conduct user testing', list: 'In Progress', labels: ['Research'], members: ['MJ'], due: '2026-11-03', dueLabel: 'Nov 3', checklist: '', comments: 2, attachments: 0, description: 'Run usability sessions.' },
-  { id: 'c10', title: 'Enhance search functionality', list: 'Review', labels: ['Feature'], members: ['SK'], due: '2026-10-24', dueLabel: 'Oct 24', checklist: '', comments: 3, attachments: 0, description: 'Improve search results and filters.' },
-  { id: 'c11', title: 'Code review for mobile app', list: 'Review', labels: ['High Priority'], members: ['PS'], due: '2026-10-27', dueLabel: 'Oct 27', checklist: '4/5', comments: 0, attachments: 0, description: 'Review the mobile app pull request.' },
-  { id: 'c12', title: 'Update privacy policy', list: 'Review', labels: ['Docs'], members: ['AK'], due: '2026-10-26', dueLabel: 'Oct 26', checklist: '', comments: 2, attachments: 0, description: 'Review policy updates.' },
-  { id: 'c13', title: 'Setup development environment', list: 'Done', labels: ['Feature'], members: ['MJ'], due: '2026-10-19', dueLabel: 'Oct 19', checklist: '5/5', comments: 0, attachments: 1, description: 'Document developer setup.' },
-  { id: 'c14', title: 'Research competitors', list: 'Done', labels: ['Research'], members: ['AK'], due: '2026-10-22', dueLabel: 'Oct 22', checklist: '', comments: 1, attachments: 0, description: 'Research competitor products.' }
-];
-const DEFAULT_FILTER = { name: '', members: 'any', dueDate: 'any', labels: [], cardType: 'all', checklist: 'any', attachment: 'any', keyword: '', customFields: 'any' };
-const labelColors = { Bug: '#ff5964', 'High Priority': '#ffbd2e', Design: '#ff4f9a', Feature: '#1688ff', Docs: '#00a66a', Research: '#7a3ff2', Analytics: '#00a66a', 'Low Priority': '#8993a4' };
-const labelClass = (label) => label.toLowerCase().replace(/\s+/g, '-');
-function loadViews() { try { const v = JSON.parse(localStorage.getItem('sfv-saved-views')); return Array.isArray(v) ? v : SEED_VIEWS; } catch { return SEED_VIEWS; } }
-function Icon({ name }) { const paths = { filter: 'M4 5h16l-6.5 7.5V19l-3-1.5v-5z', calendar: 'M7 3v4M17 3v4M4 9h16M5 5h14a1 1 0 0 1 1 1v13H4V6a1 1 0 0 1 1-1z', member: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', tag: 'M20 13 11 22 2 13V3h10zM7 8h.01', list: 'M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01', clip: 'M8 12.5 14.5 6a3 3 0 0 1 4.2 4.2l-8.2 8.2a5 5 0 0 1-7.1-7.1l8.1-8.1', search: 'M20 20l-4.5-4.5M18 10.5a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0z', check: 'm5 12 4 4L19 6', plus: 'M12 5v14M5 12h14', close: 'M18 6 6 18M6 6l12 12', more: 'M5 12h.01M12 12h.01M19 12h.01', trash: 'M3 6h18M8 6V4h8v2m-9 0 1 15h8l1-15M10 10v7m4-7v7', edit: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z', card: 'M3 5h18v14H3zM3 9h18' }; return <svg className="icon" viewBox="0 0 24 24" aria-hidden="true"><path d={paths[name] || paths.filter} /></svg>; }
-function App() {
-  const [views, setViews] = useState(loadViews);
-  const [activeView, setActiveView] = useState(null);
-  const [dropdownOpen, setDropdownOpen] = useState(true);
-  const [modal, setModal] = useState(null);
-  const [editingId, setEditingId] = useState(null);
-  const [menuId, setMenuId] = useState(null);
-  const [filter, setFilter] = useState({ ...DEFAULT_FILTER });
-  const [search, setSearch] = useState('');
-  const [toast, setToast] = useState('');
-  const [cards, setCards] = useState(INITIAL_CARDS);
-  useEffect(() => { localStorage.setItem('sfv-saved-views', JSON.stringify(views)); }, [views]);
-  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(''), 2600); return () => clearTimeout(t); }, [toast]);
-  const visibleCards = useMemo(() => cards.filter(c => matches(c, activeView ? views.find(v => v.id === activeView) : null, search)), [cards, activeView, views, search]);
-  const counts = useMemo(() => Object.fromEntries(['To Do','In Progress','Review','Done'].map(list => [list, visibleCards.filter(c => c.list === list).length])), [visibleCards]);
-  function startCreate() { setFilter({ ...DEFAULT_FILTER }); setEditingId(null); setModal('create'); setMenuId(null); }
-  function startEdit(view) { setFilter({ ...DEFAULT_FILTER, ...view, labels: [...(view.labels || [])] }); setEditingId(view.id); setModal('edit'); setMenuId(null); }
-  function saveFilter() {
-    const name = filter.name.trim(); if (!name) { setToast('Please enter a view name.'); return; }
-    if (views.some(v => v.name.toLowerCase() === name.toLowerCase() && v.id !== editingId)) { setToast('A saved view with this name already exists.'); return; }
-    const next = { ...filter, name, id: editingId || `view-${Date.now()}` };
-    setViews(old => editingId ? old.map(v => v.id === editingId ? next : v) : [...old, next]);
-    setActiveView(next.id); setModal(null); setToast(editingId ? 'Saved view updated.' : 'Filter saved and applied.');
-  }
-  function renameView() { const name = filter.name.trim(); if (!name) { setToast('Please enter a view name.'); return; } if (views.some(v => v.name.toLowerCase() === name.toLowerCase() && v.id !== editingId)) { setToast('A saved view with this name already exists.'); return; } setViews(old => old.map(v => v.id === editingId ? { ...v, name } : v)); setModal(null); setToast('Saved view renamed.'); }
-  function deleteView() { setViews(old => old.filter(v => v.id !== editingId)); if (activeView === editingId) setActiveView(null); setModal(null); setToast('Saved view deleted.'); }
-  function applyView(view) { setActiveView(view.id); setDropdownOpen(false); setMenuId(null); setToast(`Applied “${view.name}”.`); }
-  function clearFilters() { setActiveView(null); setSearch(''); setDropdownOpen(false); setToast('Filters cleared. Showing all cards.'); }
-  function updateFilter(key, value) { setFilter(f => ({ ...f, [key]: value })); }
-  function toggleLabel(label) { setFilter(f => ({ ...f, labels: f.labels.includes(label) ? f.labels.filter(x => x !== label) : [...f.labels, label] })); }
-  function addCard(list) { const title = window.prompt(`New card in ${list}:`); if (title?.trim()) { setCards(old => [...old, { id: `c${Date.now()}`, title: title.trim(), list, labels: [], members: [], due: '', dueLabel: '', checklist: '', comments: 0, attachments: 0, description: '' }]); setToast('Card added to demo board.'); } }
-  return <div className="trello-app">
-    <header className="topbar"><div className="app-grid">⠿</div><div className="trello-mark"><span className="trello-logo">▰</span> Trello</div><span className="topnav">Workspaces⌄</span><span className="topnav">Recent⌄</span><span className="topnav">Starred⌄</span><span className="topnav">Templates⌄</span><div className="top-search"><Icon name="search"/><span>Search</span></div><span className="top-symbol">➤</span><span className="top-symbol">♧</span><span className="top-symbol">?</span><div className="user-avatar">SK</div></header>
-    <div className="board-head"><div><div className="board-title">Product Development <span className="star">☆</span></div></div><button className="board-select">▣ &nbsp; Board⌄</button><div className="head-spacer"/><button className="head-action">◇ &nbsp; Power-Ups</button><button className="head-action">ϟ &nbsp; Automation</button><button className="head-action more-head">•••</button></div>
-    <div className="filterbar"><div className="filter-title"><Icon name="filter"/> Filter</div><button className="filter-pill" onClick={() => setToast('Cards filter is available in this demo through Saved Filters.')}>Cards <span>⌄</span></button><button className="filter-pill" onClick={() => setToast('Choose a saved view to filter by member.') }><Icon name="member"/> Members <span>⌄</span></button><button className="filter-pill" onClick={() => setToast('Choose a saved view to filter by label.') }><Icon name="tag"/> Labels <span>⌄</span></button><button className="filter-pill" onClick={() => setToast('Choose a saved view to filter by due date.') }><Icon name="calendar"/> Due date <span>⌄</span></button><div className="saved-anchor"><button className={`filter-pill saved-pill ${activeView ? 'has-active' : ''}`} onClick={() => { setDropdownOpen(v => !v); setMenuId(null); }}><Icon name="filter"/> Saved Filters <span>⌄</span></button>{dropdownOpen && <div className="saved-popover"><div className="popover-heading"><strong>Saved Filters</strong><button className="icon-btn" onClick={() => setDropdownOpen(false)} aria-label="Close"><Icon name="close"/></button></div><div className="saved-list">{views.length === 0 && <div className="empty-views">No saved views yet. Create your first filter.</div>}{views.map(v => <div className={`saved-row ${activeView === v.id ? 'selected' : ''}`} key={v.id}><button className="view-main" onClick={() => applyView(v)}><span className="view-icon">{v.members === 'me' ? <Icon name="member"/> : v.labels?.length ? <Icon name="tag"/> : <Icon name="calendar"/>}</span><span className="view-copy"><strong>{v.name}</strong><small>{describe(v)}</small></span>{activeView === v.id && <span className="active-check"><Icon name="check"/></span>}</button><button className="more-btn" onClick={() => setMenuId(menuId === v.id ? null : v.id)} aria-label={`Actions for ${v.name}`}><Icon name="more"/></button>{menuId === v.id && <div className="row-menu"><button onClick={() => startEdit(v)}><Icon name="edit"/> Edit</button><button onClick={() => { setEditingId(v.id); setFilter({ ...DEFAULT_FILTER, ...v, labels: [...(v.labels || [])] }); setModal('rename'); setMenuId(null); }}><span className="menu-letter">T</span> Rename</button><button className="danger-text" onClick={() => { setEditingId(v.id); setModal('delete'); setMenuId(null); }}><Icon name="trash"/> Delete</button></div>}</div>)}</div><button className="create-view" onClick={startCreate}><Icon name="plus"/> Create a filter</button></div>}</div><button className="clear-btn" onClick={clearFilters}>Clear filters</button><div className="bar-spacer"/><label className="search-square"><Icon name="search"/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search cards" aria-label="Search cards"/></label></div>
-    {activeView && <div className="active-banner"><span><Icon name="filter"/> Showing: <strong>{views.find(v => v.id === activeView)?.name}</strong> <span className="result-count">{visibleCards.length} cards</span></span><button onClick={clearFilters}>Clear view ×</button></div>}
-    <main className="board-canvas"><div className="board-columns">{['To Do','In Progress','Review','Done'].map(list => { const listCards = visibleCards.filter(c => c.list === list); return <section className="board-column" key={list}><div className="column-heading"><strong>{list}</strong><span className="count-badge">{counts[list] || 0}</span><button aria-label={`More options for ${list}`}>•••</button></div><div className="card-stack">{listCards.map(card => <Card key={card.id} card={card} />)}{!listCards.length && <div className="empty-column">No matching cards</div>}</div><button className="add-card" onClick={() => addCard(list)}><Icon name="plus"/> Add a card</button></section>; })}</div><div className="board-footnote">Demo board preview · saved views are stored in this browser</div></main>
-    {modal && <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setModal(null); }}><div className={`modal ${modal === 'delete' ? 'delete-modal' : ''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title"><button className="modal-close" onClick={() => setModal(null)} aria-label="Close"><Icon name="close"/></button>{modal === 'delete' ? <><div className="delete-icon"><Icon name="trash"/></div><h2 id="modal-title">Delete Saved View?</h2><p className="delete-copy">“{views.find(v => v.id === editingId)?.name}” will be permanently deleted from your saved views.</p><div className="modal-actions centered"><button className="btn secondary" onClick={() => setModal(null)}>Cancel</button><button className="btn red" onClick={deleteView}>Delete</button></div></> : modal === 'rename' ? <><h2 id="modal-title">Rename Saved View</h2><p className="modal-subtitle">Update the name of this saved view.</p><label className="field-label" htmlFor="rename-name">View Name <b>*</b></label><input id="rename-name" className="text-input" autoFocus value={filter.name} onChange={e => updateFilter('name', e.target.value)} onKeyDown={e => e.key === 'Enter' && renameView()} placeholder="e.g. My Tasks"/><div className="modal-actions"><button className="btn secondary" onClick={() => setModal(null)}>Cancel</button><button className="btn primary" onClick={renameView}>Rename</button></div></> : <><h2 id="modal-title">{modal === 'edit' ? 'Edit Saved View' : 'Create a Filter'}</h2><p className="modal-subtitle">{modal === 'edit' ? 'Update the view name or change the filter conditions.' : 'Set the filter conditions and save this view for quick access.'}</p><div className="filter-fields">{modal === 'edit' && <div className="field-row name-first"><label htmlFor="edit-name">View Name <b>*</b></label><input id="edit-name" className="text-input" value={filter.name} onChange={e => updateFilter('name', e.target.value)} placeholder="View name"/></div>}<Field icon="member" label="Members"><select value={filter.members} onChange={e => updateFilter('members', e.target.value)}><option value="any">Any member</option><option value="me">Me</option><option value="assigned">Assigned to anyone</option><option value="unassigned">Unassigned</option><option value="SK">Sophie Kim (SK)</option><option value="PS">Priya Shah (PS)</option><option value="AK">Amit Kumar (AK)</option><option value="MJ">Maya Jones (MJ)</option></select></Field><Field icon="calendar" label="Due date"><select value={filter.dueDate} onChange={e => updateFilter('dueDate', e.target.value)}><option value="any">Any time</option><option value="overdue">Overdue</option><option value="today">Today</option><option value="week">This week</option><option value="nextweek">Next week</option><option value="none">No due date</option></select></Field><div className="field-row"><label><Icon name="tag"/> Labels</label><div className="label-picker"><div className="label-chips">{filter.labels.length ? filter.labels.map(l => <button key={l} className={`label-chip ${labelClass(l)}`} onClick={() => toggleLabel(l)}>{l}<span>×</span></button>) : <span className="muted-placeholder">Choose labels (optional)</span>}</div><select aria-label="Add a label" value="" onChange={e => e.target.value && toggleLabel(e.target.value)}><option value="">Add label⌄</option>{Object.keys(labelColors).filter(l => !filter.labels.includes(l)).map(l => <option key={l} value={l}>{l}</option>)}</select></div></div><Field icon="card" label="Card type"><select value={filter.cardType} onChange={e => updateFilter('cardType', e.target.value)}><option value="all">All cards</option><option value="open">Open cards</option><option value="done">Completed cards</option></select></Field><Field icon="list" label="Checklist"><select value={filter.checklist} onChange={e => updateFilter('checklist', e.target.value)}><option value="any">Any</option><option value="has">Has checklist</option><option value="incomplete">Checklist incomplete</option><option value="complete">Checklist complete</option><option value="none">No checklist</option></select></Field><Field icon="clip" label="Attachment"><select value={filter.attachment} onChange={e => updateFilter('attachment', e.target.value)}><option value="any">Any</option><option value="has">Has attachment</option><option value="none">No attachment</option></select></Field><Field icon="search" label="Keyword"><input className="field-input" value={filter.keyword} onChange={e => updateFilter('keyword', e.target.value)} placeholder="Enter keyword (optional)"/></Field><Field icon="list" label="Custom fields"><select value={filter.customFields} onChange={e => updateFilter('customFields', e.target.value)}><option value="any">Any</option><option value="notset">Not set</option></select></Field></div>{modal === 'create' && <div className="field-row view-name"><label htmlFor="create-name">View Name <b>*</b></label><input id="create-name" className="text-input focused" autoFocus value={filter.name} onChange={e => updateFilter('name', e.target.value)} onKeyDown={e => e.key === 'Enter' && saveFilter()} placeholder="e.g. My Bugs This Week"/></div>}<div className="modal-actions"><button className="btn secondary" onClick={() => setModal(null)}>Cancel</button><button className="btn primary" onClick={saveFilter}>{modal === 'edit' ? 'Update View' : 'Save Filter'}</button></div></>}</div></div>}
-    {toast && <div className="toast" role="status">{toast}</div>}
-  </div>;
+import React, { useEffect, useMemo, useState } from "react";
+import { createRoot } from "react-dom/client";
+import "./styles.css";
+
+import {
+  initializeTrello,
+  getBoardInfo,
+  getTrelloCards,
+  getTrelloLists,
+  getTrelloMembers,
+  loadSavedViews,
+  saveSavedViews,
+  openTrelloCard
+} from "./trello";
+
+/* =========================================
+   HELPERS
+========================================= */
+
+const emptyFilter = {
+  members: "all",
+  dueDate: "any",
+  labels: [],
+  cardType: "all",
+  checklist: "any",
+  attachment: "any",
+  keyword: "",
+  customFields: "any"
+};
+
+function createId() {
+  return crypto.randomUUID();
 }
-function Field({ icon, label, children }) { return <div className="field-row"><label><Icon name={icon}/>{label}</label><div className="field-control">{children}</div></div>; }
-function Card({ card }) { return <article className="trello-card"><div className="card-labels">{card.labels.slice(0, 3).map(l => <span key={l} className="card-label" style={{ background: labelColors[l] || '#8993a4' }} title={l}/>)}</div><div className="card-title">{card.title}</div><div className="card-meta">{card.checklist && <span className="meta-item"><span className="meta-icon">☑</span>{card.checklist}</span>}{card.comments > 0 && <span className="meta-item"><span className="meta-icon">◯</span>{card.comments}</span>}{card.attachments > 0 && <span className="meta-item"><span className="meta-icon">↗</span>{card.attachments}</span>}{card.dueLabel && <span className={`due-chip ${card.due && card.due < '2026-10-22' ? 'overdue' : ''}`}>◷ {card.dueLabel}</span>}<span className="meta-spacer"/>{card.members.map(m => <span className={`member-avatar avatar-${m.toLowerCase()}`} key={m}>{m}</span>)}</div></article>; }
-function describe(v) { const bits = []; if (v.members === 'me') bits.push('Members: Me'); else if (v.members && v.members !== 'any') bits.push(`Members: ${v.members === 'unassigned' ? 'Unassigned' : v.members}`); if (v.dueDate && v.dueDate !== 'any') bits.push(`Due date: ${{week:'This week',overdue:'Overdue',today:'Today',nextweek:'Next week',none:'No due date'}[v.dueDate] || v.dueDate}`); if (v.labels?.length) bits.push(`Label: ${v.labels.join(', ')}`); if (v.keyword) bits.push(`Keyword: ${v.keyword}`); return bits.join(' · ') || 'All cards'; }
-function matches(card, view, search) { if (search && !`${card.title} ${card.description} ${card.labels.join(' ')}`.toLowerCase().includes(search.toLowerCase())) return false; if (!view) return true; if (view.members === 'me' && !card.members.includes('SK')) return false; if (view.members === 'unassigned' && card.members.length) return false; if (['SK','PS','AK','MJ'].includes(view.members) && !card.members.includes(view.members)) return false; if (view.members === 'assigned' && !card.members.length) return false; if (view.labels?.length && !view.labels.every(l => card.labels.includes(l))) return false; if (view.keyword && !`${card.title} ${card.description}`.toLowerCase().includes(view.keyword.toLowerCase())) return false; if (view.dueDate === 'none' && card.due) return false; if (view.dueDate === 'overdue' && !(card.due && card.due < '2026-10-22')) return false; if (view.dueDate === 'today' && card.due !== '2026-10-22') return false; if (view.dueDate === 'week' && !(card.due && card.due >= '2026-10-22' && card.due <= '2026-10-28')) return false; if (view.dueDate === 'nextweek' && !(card.due && card.due > '2026-10-28' && card.due <= '2026-11-04')) return false; if (view.cardType === 'open' && card.list === 'Done') return false; if (view.cardType === 'done' && card.list !== 'Done') return false; if (view.checklist === 'has' && !card.checklist) return false; if (view.checklist === 'none' && card.checklist) return false; if (view.checklist === 'incomplete' && (!card.checklist || Number(card.checklist.split('/')[0]) >= Number(card.checklist.split('/')[1]))) return false; if (view.checklist === 'complete' && (!card.checklist || Number(card.checklist.split('/')[0]) < Number(card.checklist.split('/')[1]))) return false; if (view.attachment === 'has' && card.attachments < 1) return false; if (view.attachment === 'none' && card.attachments > 0) return false; return true; }
 
-createRoot(document.getElementById('root')).render(<App />);
+function normalizeView(view) {
+  return {
+    id: view.id || createId(),
+    name: view.name || "Untitled View",
+    filters: {
+      ...emptyFilter,
+      ...(view.filters || {})
+    }
+  };
+}
+
+function isDueThisWeek(date) {
+  if (!date) return false;
+
+  const due = new Date(date);
+  const now = new Date();
+
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(now);
+  end.setDate(end.getDate() + 7);
+  end.setHours(23, 59, 59, 999);
+
+  return due >= start && due <= end;
+}
+
+function matchesFilters(card, filters, members) {
+  const selectedMembers = filters.members;
+
+  if (
+    selectedMembers !== "all" &&
+    selectedMembers !== "me" &&
+    !card.members?.includes(selectedMembers)
+  ) {
+    return false;
+  }
+
+  if (selectedMembers === "me") {
+    const currentMember = members.find(member => member.isMe);
+
+    if (
+      currentMember &&
+      !card.members?.includes(currentMember.id)
+    ) {
+      return false;
+    }
+  }
+
+  if (filters.dueDate === "week" && !isDueThisWeek(card.due)) {
+    return false;
+  }
+
+  if (filters.dueDate === "overdue") {
+    if (!card.due || new Date(card.due) >= new Date()) {
+      return false;
+    }
+  }
+
+  if (filters.dueDate === "noDue" && card.due) {
+    return false;
+  }
+
+  if (filters.labels?.length) {
+    const cardLabels = (card.labels || []).map(label =>
+      typeof label === "string" ? label : label.name
+    );
+
+    const hasLabel = filters.labels.some(label =>
+      cardLabels.includes(label)
+    );
+
+    if (!hasLabel) return false;
+  }
+
+  if (filters.cardType === "open" && card.closed) {
+    return false;
+  }
+
+  if (filters.cardType === "closed" && !card.closed) {
+    return false;
+  }
+
+  if (filters.checklist === "complete" && !card.checklistComplete) {
+    return false;
+  }
+
+  if (filters.checklist === "incomplete" && card.checklistComplete) {
+    return false;
+  }
+
+  if (filters.attachment === "yes" && !card.attachments?.length) {
+    return false;
+  }
+
+  if (filters.attachment === "no" && card.attachments?.length) {
+    return false;
+  }
+
+  if (filters.keyword) {
+    const keyword = filters.keyword.toLowerCase();
+
+    const text = [
+      card.name,
+      card.title,
+      card.desc,
+      card.description
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    if (!text.includes(keyword)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/* =========================================
+   APP
+========================================= */
+
+function App() {
+  const [trello, setTrello] = useState(false);
+
+  const [board, setBoard] = useState(null);
+
+  const [cards, setCards] = useState([]);
+
+  const [lists, setLists] = useState([]);
+
+  const [members, setMembers] = useState([]);
+
+  const [savedViews, setSavedViews] = useState([]);
+
+  const [activeFilters, setActiveFilters] = useState({
+    ...emptyFilter
+  });
+
+  const [selectedView, setSelectedView] = useState(null);
+
+  const [loading, setLoading] = useState(true);
+
+  const [error, setError] = useState("");
+
+  const [showDropdown, setShowDropdown] = useState(true);
+
+  const [showCreate, setShowCreate] = useState(false);
+
+  const [editingView, setEditingView] = useState(null);
+
+  const [renamingView, setRenamingView] = useState(null);
+
+  const [deletingView, setDeletingView] = useState(null);
+
+  const [viewName, setViewName] = useState("");
+
+  const [formFilters, setFormFilters] = useState({
+    ...emptyFilter
+  });
+
+  const [search, setSearch] = useState("");
+
+  /* =========================================
+     LOAD TRELLO DATA
+  ========================================= */
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const t = initializeTrello();
+
+        if (!t) {
+          setTrello(false);
+          setLoading(false);
+          return;
+        }
+
+        setTrello(true);
+
+        const [
+          boardData,
+          cardData,
+          listData,
+          memberData,
+          viewData
+        ] = await Promise.all([
+          getBoardInfo(),
+          getTrelloCards(),
+          getTrelloLists(),
+          getTrelloMembers(),
+          loadSavedViews()
+        ]);
+
+        setBoard(boardData);
+
+        setCards(cardData || []);
+
+        setLists(listData || []);
+
+        setMembers(memberData || []);
+
+        setSavedViews((viewData || []).map(normalizeView));
+      } catch (err) {
+        console.error(err);
+        setError("Unable to load Trello board data.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  /* =========================================
+     FILTER CARDS
+  ========================================= */
+
+  const filteredCards = useMemo(() => {
+    return cards.filter(card =>
+      matchesFilters(card, activeFilters, members)
+    );
+  }, [cards, activeFilters, members]);
+
+  /* =========================================
+     SAVE VIEWS
+  ========================================= */
+
+  async function persistViews(nextViews) {
+    setSavedViews(nextViews);
+
+    try {
+      if (trello) {
+        await saveSavedViews(nextViews);
+      } else {
+        localStorage.setItem(
+          "savedFilterViews",
+          JSON.stringify(nextViews)
+        );
+      }
+    } catch (err) {
+      console.error("Saving views failed:", err);
+
+      setError("Unable to save views to Trello.");
+    }
+  }
+
+  /* =========================================
+     CREATE FILTER
+  ========================================= */
+
+  function openCreate() {
+    setViewName("");
+
+    setFormFilters({
+      ...emptyFilter,
+      labels: []
+    });
+
+    setShowCreate(true);
+  }
+
+  async function createView() {
+    if (!viewName.trim()) {
+      alert("Please enter a view name.");
+      return;
+    }
+
+    const newView = {
+      id: createId(),
+      name: viewName.trim(),
+      filters: {
+        ...formFilters,
+        labels: [...formFilters.labels]
+      }
+    };
+
+    await persistViews([...savedViews, newView]);
+
+    setShowCreate(false);
+  }
+
+  /* =========================================
+     APPLY VIEW
+  ========================================= */
+
+  function applyView(view) {
+    setActiveFilters({
+      ...emptyFilter,
+      ...view.filters
+    });
+
+    setSelectedView(view.id);
+
+    setShowDropdown(false);
+  }
+
+  /* =========================================
+     EDIT VIEW
+  ========================================= */
+
+  function openEdit(view) {
+    setEditingView(view);
+
+    setViewName(view.name);
+
+    setFormFilters({
+      ...emptyFilter,
+      ...view.filters
+    });
+  }
+
+  async function updateView() {
+    if (!viewName.trim()) {
+      alert("Please enter a view name.");
+      return;
+    }
+
+    const updatedViews = savedViews.map(view =>
+      view.id === editingView.id
+        ? {
+            ...view,
+            name: viewName.trim(),
+            filters: {
+              ...formFilters,
+              labels: [...formFilters.labels]
+            }
+          }
+        : view
+    );
+
+    await persistViews(updatedViews);
+
+    setEditingView(null);
+  }
+
+  /* =========================================
+     RENAME VIEW
+  ========================================= */
+
+  function openRename(view) {
+    setRenamingView(view);
+
+    setViewName(view.name);
+  }
+
+  async function renameView() {
+    if (!viewName.trim()) {
+      alert("Please enter a view name.");
+      return;
+    }
+
+    const updatedViews = savedViews.map(view =>
+      view.id === renamingView.id
+        ? {
+            ...view,
+            name: viewName.trim()
+          }
+        : view
+    );
+
+    await persistViews(updatedViews);
+
+    setRenamingView(null);
+  }
+
+  /* =========================================
+     DELETE VIEW
+  ========================================= */
+
+  async function deleteView() {
+    const updatedViews = savedViews.filter(
+      view => view.id !== deletingView.id
+    );
+
+    await persistViews(updatedViews);
+
+    if (selectedView === deletingView.id) {
+      setSelectedView(null);
+      setActiveFilters({ ...emptyFilter });
+    }
+
+    setDeletingView(null);
+  }
+
+  /* =========================================
+     CLEAR FILTERS
+  ========================================= */
+
+  function clearFilters() {
+    setActiveFilters({ ...emptyFilter });
+
+    setSelectedView(null);
+  }
+
+  /* =========================================
+     FORM FIELD
+  ========================================= */
+
+  function updateField(field, value) {
+    setFormFilters(previous => ({
+      ...previous,
+      [field]: value
+    }));
+  }
+
+  function toggleLabel(label) {
+    setFormFilters(previous => {
+      const labels = previous.labels || [];
+
+      return {
+        ...previous,
+        labels: labels.includes(label)
+          ? labels.filter(item => item !== label)
+          : [...labels, label]
+      };
+    });
+  }
+
+  /* =========================================
+     LOADING
+  ========================================= */
+
+  if (loading) {
+    return (
+      <div className="loading">
+        Loading Saved Filter Views...
+      </div>
+    );
+  }
+
+  /* =========================================
+     UI
+  ========================================= */
+
+  return (
+    <div className="app">
+
+      <header className="header">
+        <strong>Saved Filter Views</strong>
+
+        <button
+          className="icon-button"
+          onClick={() => setShowDropdown(false)}
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </header>
+
+      {!trello && (
+        <div className="notice">
+          Demo mode: open this Power-Up inside Trello
+          to load real board data.
+        </div>
+      )}
+
+      {error && (
+        <div className="error">
+          {error}
+        </div>
+      )}
+
+      {/* =====================================
+           SAVED FILTER LIST
+      ====================================== */}
+
+      <section className="saved-list">
+
+        <div className="list-header">
+          <h3>Saved Filters</h3>
+
+          <button
+            className="icon-button"
+            onClick={() => setShowDropdown(false)}
+          >
+            ×
+          </button>
+        </div>
+
+        {savedViews.length === 0 && (
+          <div className="empty">
+            No saved filters yet.
+            <br />
+            Create your first filter.
+          </div>
+        )}
+
+        {savedViews.map(view => (
+          <div
+            className={
+              selectedView === view.id
+                ? "saved-item active"
+                : "saved-item"
+            }
+            key={view.id}
+          >
+
+            <button
+              className="saved-main"
+              onClick={() => applyView(view)}
+            >
+
+              <span className="saved-icon">
+                ◇
+              </span>
+
+              <span className="saved-text">
+
+                <strong>{view.name}</strong>
+
+                <small>
+                  {view.filters.keyword
+                    ? `Keyword: ${view.filters.keyword}`
+                    : view.filters.labels?.length
+                    ? `Label: ${view.filters.labels.join(", ")}`
+                    : view.filters.members === "me"
+                    ? "Members: Me"
+                    : view.filters.dueDate === "week"
+                    ? "Due date: This week"
+                    : "Custom filter"}
+                </small>
+
+              </span>
+
+            </button>
+
+            <div className="actions">
+
+              <button
+                className="icon-button"
+                title="Edit"
+                onClick={() => openEdit(view)}
+              >
+                ✎
+              </button>
+
+              <button
+                className="icon-button"
+                title="Rename"
+                onClick={() => openRename(view)}
+              >
+                Aa
+              </button>
+
+              <button
+                className="icon-button delete-action"
+                title="Delete"
+                onClick={() => setDeletingView(view)}
+              >
+                ⋯
+              </button>
+
+            </div>
+
+          </div>
+        ))}
+
+        <button
+          className="create-button"
+          onClick={openCreate}
+        >
+          <span>＋</span>
+          Create a filter
+        </button>
+
+      </section>
+
+      {/* =====================================
+           FILTERED CARDS
+      ====================================== */}
+
+      <section className="results">
+
+        <div className="results-header">
+
+          <strong>
+            {board?.name || "Board Cards"}
+          </strong>
+
+          <span>
+            {filteredCards.length} cards
+          </span>
+
+        </div>
+
+        <input
+          className="search-input"
+          placeholder="Search cards..."
+          value={search}
+          onChange={event => setSearch(event.target.value)}
+        />
+
+        {filteredCards
+          .filter(card =>
+            (card.name || card.title || "")
+              .toLowerCase()
+              .includes(search.toLowerCase())
+          )
+          .map(card => {
+
+            const list = lists.find(
+              item => item.id === card.listId
+            );
+
+            return (
+              <button
+                className="card-result"
+                key={card.id}
+                onClick={() => openTrelloCard(card.id)}
+              >
+
+                <strong>
+                  {card.name || card.title}
+                </strong>
+
+                <small>
+                  {list?.name || "Trello Card"}
+                </small>
+
+              </button>
+            );
+          })}
+
+        {filteredCards.length === 0 && (
+          <div className="empty">
+            No matching cards.
+          </div>
+        )}
+
+        <button
+          className="clear-button"
+          onClick={clearFilters}
+        >
+          Clear filters
+        </button>
+
+      </section>
+
+      {/* =====================================
+           CREATE / EDIT MODAL
+      ====================================== */}
+
+      {(showCreate || editingView) && (
+
+        <div className="modal-overlay">
+
+          <div className="modal">
+
+            <div className="modal-header">
+
+              <h2>
+                {editingView
+                  ? "Edit Saved View"
+                  : "Create a Filter"}
+              </h2>
+
+              <button
+                className="icon-button"
+                onClick={() => {
+                  setShowCreate(false);
+                  setEditingView(null);
+                }}
+              >
+                ×
+              </button>
+
+            </div>
+
+            <p className="subtitle">
+              Set filter conditions and save this view.
+            </p>
+
+            <label>
+              Members
+              <select
+                value={formFilters.members}
+                onChange={e =>
+                  updateField("members", e.target.value)
+                }
+              >
+                <option value="all">All members</option>
+                <option value="me">Me</option>
+
+                {members.map(member => (
+                  <option
+                    value={member.id}
+                    key={member.id}
+                  >
+                    {member.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Due date
+              <select
+                value={formFilters.dueDate}
+                onChange={e =>
+                  updateField("dueDate", e.target.value)
+                }
+              >
+                <option value="any">Any</option>
+                <option value="week">This week</option>
+                <option value="overdue">Overdue</option>
+                <option value="noDue">No due date</option>
+              </select>
+            </label>
+
+            <label>
+              Labels
+              <div className="label-options">
+
+                {[...new Set(
+                  cards.flatMap(card =>
+                    (card.labels || []).map(label =>
+                      typeof label === "string"
+                        ? label
+                        : label.name
+                    )
+                  )
+                )].map(label => (
+
+                  <button
+                    key={label}
+                    type="button"
+                    className={
+                      formFilters.labels.includes(label)
+                        ? "label-chip selected"
+                        : "label-chip"
+                    }
+                    onClick={() => toggleLabel(label)}
+                  >
+                    {label}
+                  </button>
+
+                ))}
+
+              </div>
+            </label>
+
+            <label>
+              Card type
+              <select
+                value={formFilters.cardType}
+                onChange={e =>
+                  updateField("cardType", e.target.value)
+                }
+              >
+                <option value="all">All cards</option>
+                <option value="open">Open cards</option>
+                <option value="closed">Closed cards</option>
+              </select>
+            </label>
+
+            <label>
+              Checklist
+              <select
+                value={formFilters.checklist}
+                onChange={e =>
+                  updateField("checklist", e.target.value)
+                }
+              >
+                <option value="any">Any</option>
+                <option value="complete">Complete</option>
+                <option value="incomplete">Incomplete</option>
+              </select>
+            </label>
+
+            <label>
+              Attachment
+              <select
+                value={formFilters.attachment}
+                onChange={e =>
+                  updateField("attachment", e.target.value)
+                }
+              >
+                <option value="any">Any</option>
+                <option value="yes">Has attachment</option>
+                <option value="no">No attachment</option>
+              </select>
+            </label>
+
+            <label>
+              Keyword
+              <input
+                placeholder="Enter keyword"
+                value={formFilters.keyword}
+                onChange={e =>
+                  updateField("keyword", e.target.value)
+                }
+              />
+            </label>
+
+            <label>
+              View Name *
+              <input
+                placeholder="My Tasks"
+                value={viewName}
+                onChange={e =>
+                  setViewName(e.target.value)
+                }
+              />
+            </label>
+
+            <div className="modal-actions">
+
+              <button
+                className="secondary-button"
+                onClick={() => {
+                  setShowCreate(false);
+                  setEditingView(null);
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="primary-button"
+                onClick={editingView
+                  ? updateView
+                  : createView}
+              >
+                {editingView
+                  ? "Update View"
+                  : "Save Filter"}
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+      {/* =====================================
+           RENAME MODAL
+      ====================================== */}
+
+      {renamingView && (
+
+        <div className="modal-overlay">
+
+          <div className="modal">
+
+            <div className="modal-header">
+
+              <h2>Rename Saved View</h2>
+
+              <button
+                className="icon-button"
+                onClick={() => setRenamingView(null)}
+              >
+                ×
+              </button>
+
+            </div>
+
+            <label>
+              View Name *
+              <input
+                value={viewName}
+                onChange={e =>
+                  setViewName(e.target.value)
+                }
+              />
+            </label>
+
+            <div className="modal-actions">
+
+              <button
+                className="secondary-button"
+                onClick={() => setRenamingView(null)}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="primary-button"
+                onClick={renameView}
+              >
+                Rename
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+      {/* =====================================
+           DELETE MODAL
+      ====================================== */}
+
+      {deletingView && (
+
+        <div className="modal-overlay">
+
+          <div className="modal delete-modal">
+
+            <div className="delete-icon">
+              🗑
+            </div>
+
+            <h2>Delete Saved View?</h2>
+
+            <p>
+              "{deletingView.name}" will be permanently
+              deleted from your saved views.
+            </p>
+
+            <div className="modal-actions">
+
+              <button
+                className="secondary-button"
+                onClick={() => setDeletingView(null)}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="danger-button"
+                onClick={deleteView}
+              >
+                Delete
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+    </div>
+  );
+}
+
+/* =========================================
+   RENDER
+========================================= */
+
+createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);

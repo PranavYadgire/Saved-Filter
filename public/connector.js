@@ -4,8 +4,10 @@
    Board Button + Compact Popup
    ========================================== */
 
-const APP_URL = new URL("../", window.location.href).toString();
-
+const APP_URL = new URL(
+  "../popup.html",
+  window.location.href
+).toString();
 const POWERUP_NAME = "Saved Filter Views";
 
 const POWERUP_ICON =
