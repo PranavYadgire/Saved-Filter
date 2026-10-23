@@ -811,28 +811,65 @@ function Popup() {
               </button>
             </div>
 
-            {menuFilter === filter.id && (
-              <div className="item-menu">
-                <button onClick={() => openEditModal(filter)}>
-                  ✎ Edit
-                </button>
+            
+<div className="item-menu-wrapper">
+  <button
+    className="item-menu-trigger"
+    type="button"
+    aria-label="Filter options"
+    onClick={(e) => {
+      e.stopPropagation();
+      setMenuFilter(
+        menuFilter === filter.id ? null : filter.id
+      );
+    }}
+  >
+    ⋯
+  </button>
 
-                <button onClick={() => openRenameModal(filter)}>
-                  ▧ Rename
-                </button>
+  {menuFilter === filter.id && (
+    <div
+      className="item-menu"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        type="button"
+        onClick={() => {
+          setMenuFilter(null);
+          openEditModal(filter);
+        }}
+      >
+        <span>✎</span>
+        Edit
+      </button>
 
-                <button
-                  className="delete-menu-item"
-                  onClick={() => {
-                    setEditingFilter(filter);
-                    setMenuFilter(null);
-                    setModal("delete");
-                  }}
-                >
-                  🗑 Delete
-                </button>
-              </div>
-            )}
+      <button
+        type="button"
+        onClick={() => {
+          setMenuFilter(null);
+          openRenameModal(filter);
+        }}
+      >
+        <span>▧</span>
+        Rename
+      </button>
+
+      <button
+        type="button"
+        className="delete-menu-item"
+        onClick={() => {
+          setEditingFilter(filter);
+          setMenuFilter(null);
+          setModal("delete");
+        }}
+      >
+        <span>🗑</span>
+        Delete
+      </button>
+    </div>
+  )}
+</div>
+
           </div>
         ))}
 
