@@ -7,6 +7,7 @@ import {
   getTrelloCards,
   getTrelloLists,
   getTrelloMembers,
+  getCurrentMember,
   loadSavedViews,
   saveSavedViews,
   filterTrelloCards,
@@ -87,12 +88,14 @@ export default function App() {
           cardData,
           listData,
           memberData,
+          currentMemberData,
           savedData,
         ] = await Promise.all([
           getBoardInfo(),
           getTrelloCards(),
           getTrelloLists(),
           getTrelloMembers(),
+          getCurrentMember(),
           loadSavedViews(),
         ]);
 
@@ -102,6 +105,7 @@ export default function App() {
         setCards(cardData);
         setLists(listData);
         setMembers(memberData);
+        setCurrentMember(currentMemberData);
         setViews(savedData);
 
         setTrelloReady(true);
@@ -359,17 +363,20 @@ export default function App() {
         cardData,
         listData,
         memberData,
+        currentMemberData,
         savedData,
       ] = await Promise.all([
         getTrelloCards(),
         getTrelloLists(),
         getTrelloMembers(),
+        getCurrentMember(),
         loadSavedViews(),
       ]);
 
       setCards(cardData);
       setLists(listData);
       setMembers(memberData);
+      setCurrentMember(currentMemberData);
       setViews(savedData);
 
       setNotice("Board data refreshed.");
@@ -583,6 +590,7 @@ export default function App() {
                 }
               >
                 <option value="any">Any member</option>
+                <option value="me">Assigned to me{currentMember?.name ? ` (${currentMember.name})` : ""}</option>
 
                 {members.map((member) => (
                   <option
