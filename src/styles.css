@@ -891,4 +891,51 @@ button:disabled {
   background: #ffebe6;
 }
 
+/* REMOVE DUPLICATE THREE-DOT MENU */
+
+.saved-item .item-menu-wrapper {
+  display: none !important;
+}
+
+/* KEEP ONLY ONE THREE-DOT BUTTON */
+
+.saved-item .actions {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+/* REMOVE UNWANTED CROSS BUTTONS */
+
+.saved-list > .list-header .icon-button,
+.saved-list > .list-header button[title="Close"],
+.header button[title="Close"] {
+  display: none !important;
+}
+
+/* FILTER ROW CLEANUP */
+
+.saved-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* THREE DOT BUTTON */
+
+.saved-item .actions .icon-button {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #44546f;
+  font-size: 22px;
+}
+
+.saved-item .actions .icon-button:hover {
+  background: #f1f2f4;
+}
+
 }
