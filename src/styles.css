@@ -1,6 +1,6 @@
 
 /* =========================================
-   SAVED FILTER VIEWS - TRELLO POWER-UP
+   SAVED FILTER VIEWS - CLEAN TRELLO UI
 ========================================= */
 
 :root {
@@ -10,19 +10,12 @@
   color: #172b4d;
   background: #ffffff;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-
   --primary: #0c66e4;
   --primary-hover: #0055cc;
-
   --text: #172b4d;
   --secondary: #626f86;
-
   --border: #dfe1e6;
-  --background: #ffffff;
   --hover: #f7f8f9;
-
   --blue-light: #e9f2ff;
   --danger: #c9372c;
 }
@@ -44,13 +37,14 @@ body,
 body {
   font-family: inherit;
   color: var(--text);
-  background: var(--background);
+  background: #fff;
   overflow-x: hidden;
 }
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -59,45 +53,41 @@ button {
 }
 
 button:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
-  opacity: 0.55;
 }
-
-/* =========================================
-   MAIN APP
-========================================= */
 
 .app {
   width: 100%;
   min-width: 0;
-  background: #ffffff;
+  padding: 0;
+  background: #fff;
 }
 
-/* =========================================
-   HEADER
-========================================= */
+/* HEADER */
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
 
-  min-height: 54px;
-  padding: 12px 16px;
+  min-height: 48px;
+  padding: 10px 14px;
 
-  background: #ffffff;
+  background: #fff;
   border-bottom: 1px solid var(--border);
 }
 
+.header h1,
 .header-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
+  margin: 0;
   min-width: 0;
 
-  font-size: 15px;
+  color: #44546f;
+  font-size: 16px;
   font-weight: 600;
+  line-height: 22px;
 }
 
 .header-icon {
@@ -109,12 +99,10 @@ button:disabled {
   height: 28px;
 
   color: var(--primary);
-  font-size: 21px;
+  font-size: 20px;
 }
 
-/* =========================================
-   ICON BUTTONS
-========================================= */
+/* ICON BUTTONS */
 
 .icon-button {
   display: inline-flex;
@@ -123,13 +111,14 @@ button:disabled {
 
   flex-shrink: 0;
 
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
 
   padding: 0;
 
-  border: none;
-  border-radius: 5px;
+  border: 0;
+  border-radius: 6px;
 
   background: transparent;
   color: #44546f;
@@ -147,17 +136,15 @@ button:disabled {
   outline-offset: 2px;
 }
 
-/* =========================================
-   NOTICE
-========================================= */
+/* NOTICE / ERROR */
 
-.notice {
+.notice,
+.error {
   margin: 10px 12px;
-
   padding: 10px 12px;
 
   border: 1px solid #b3d4ff;
-  border-radius: 6px;
+  border-radius: 7px;
 
   background: #e9f2ff;
   color: #0747a6;
@@ -166,26 +153,28 @@ button:disabled {
   line-height: 1.5;
 }
 
-/* =========================================
-   SAVED FILTER LIST
-========================================= */
+.error {
+  border-color: #ffbdad;
+  background: #ffebe6;
+  color: #ae2e24;
+}
+
+/* SAVED FILTERS */
 
 .saved-list {
   width: 100%;
   min-width: 0;
-
-  padding: 0 12px 12px;
-
-  background: #ffffff;
+  padding: 0 12px 14px;
+  background: #fff;
 }
 
 .list-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 
   min-height: 48px;
-
   padding: 8px 0;
 
   border-bottom: 1px solid var(--border);
@@ -194,14 +183,13 @@ button:disabled {
 .list-header h3 {
   margin: 0;
 
+  color: #172b4d;
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
 }
 
-/* =========================================
-   SAVED FILTER ITEM
-========================================= */
+/* FILTER ROW */
 
 .saved-item {
   position: relative;
@@ -209,16 +197,16 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-
-  gap: 4px;
+  gap: 6px;
 
   width: 100%;
-  min-height: 68px;
+  min-width: 0;
+  min-height: 76px;
 
   border-bottom: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: 6px;
 
-  background: #ffffff;
+  background: #fff;
 
   transition: background 0.15s ease;
 }
@@ -235,28 +223,30 @@ button:disabled {
   background: #deebff;
 }
 
-/* =========================================
-   SAVED FILTER MAIN BUTTON
-========================================= */
+/* FILTER MAIN BUTTON */
 
 .saved-main {
   display: flex;
   align-items: center;
+  gap: 12px;
 
   flex: 1;
   min-width: 0;
+  min-height: 74px;
 
-  gap: 10px;
+  padding: 12px 6px;
 
-  padding: 11px 4px;
-
-  border: none;
+  border: 0;
+  border-radius: 6px;
 
   background: transparent;
-
   color: var(--text);
 
   text-align: left;
+}
+
+.saved-main:hover {
+  background: transparent;
 }
 
 .saved-main:focus-visible {
@@ -264,9 +254,7 @@ button:disabled {
   outline-offset: -2px;
 }
 
-/* =========================================
-   FILTER ICON
-========================================= */
+/* FILTER ICON */
 
 .saved-icon {
   display: flex;
@@ -280,33 +268,28 @@ button:disabled {
   height: 36px;
 
   color: #44546f;
-
-  font-size: 23px;
+  font-size: 22px;
   line-height: 1;
 }
 
-/* =========================================
-   FILTER TEXT
-========================================= */
+/* FILTER NAME + DESCRIPTION */
 
 .saved-text {
   display: flex;
   flex-direction: column;
+  gap: 5px;
 
   flex: 1;
   min-width: 0;
-
-  gap: 4px;
 }
 
 .saved-text strong {
   overflow: hidden;
 
   color: #172b4d;
-
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  line-height: 17px;
+  line-height: 19px;
 
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -316,18 +299,15 @@ button:disabled {
   overflow: hidden;
 
   color: #626f86;
-
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
-  line-height: 15px;
+  line-height: 17px;
 
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* =========================================
-   FILTER ACTIONS
-========================================= */
+/* THREE DOT MENU */
 
 .actions {
   position: relative;
@@ -337,61 +317,57 @@ button:disabled {
   justify-content: center;
 
   flex-shrink: 0;
-
-  gap: 2px;
+  padding-right: 2px;
 }
 
 .actions .icon-button {
-  width: 30px;
-  min-width: 30px;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
 
-  font-size: 18px;
+  font-size: 19px;
 }
 
-/* =========================================
-   ACTION MENU
-========================================= */
+/* DROPDOWN MENU */
 
 .action-menu {
   position: absolute;
-
-  top: 32px;
+  top: 38px;
   right: 0;
 
   z-index: 100;
 
   display: flex;
   flex-direction: column;
+  gap: 2px;
 
-  width: 145px;
-
+  width: 160px;
   padding: 5px;
 
-  border: 1px solid var(--border);
-  border-radius: 7px;
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
 
-  background: #ffffff;
-
-  box-shadow: 0 8px 20px rgba(9, 30, 66, 0.18);
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(9, 30, 66, 0.18);
 }
 
 .action-menu button {
   display: flex;
   align-items: center;
+  gap: 9px;
 
   width: 100%;
-  min-height: 34px;
+  min-height: 38px;
 
-  padding: 8px 10px;
+  padding: 9px 11px;
 
-  border: none;
-  border-radius: 4px;
+  border: 0;
+  border-radius: 5px;
 
   background: transparent;
-
   color: #172b4d;
 
-  font-size: 12px;
+  font-size: 13px;
   text-align: left;
 }
 
@@ -403,31 +379,27 @@ button:disabled {
   color: var(--danger);
 }
 
-/* =========================================
-   CREATE FILTER BUTTON
-========================================= */
+/* CREATE FILTER */
 
 .create-button {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-
   gap: 10px;
 
   width: 100%;
-  min-height: 44px;
+  min-height: 48px;
 
   margin-top: 12px;
-  padding: 10px 12px;
+  padding: 11px 14px;
 
-  border: none;
-  border-radius: 6px;
+  border: 0;
+  border-radius: 8px;
 
   background: #e9f2ff;
-
   color: #0c66e4;
 
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 
   transition: background 0.15s ease;
@@ -442,16 +414,27 @@ button:disabled {
   align-items: center;
   justify-content: center;
 
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 
-  font-size: 22px;
+  font-size: 23px;
   font-weight: 400;
 }
 
-/* =========================================
-   CLEAR FILTER BUTTON
-========================================= */
+/* ACTIVE FILTER */
+
+.active-filter {
+  margin: 12px 0 4px;
+  color: #172b4d;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.active-filter strong {
+  font-weight: 700;
+}
+
+/* CLEAR FILTER */
 
 .clear-button {
   display: flex;
@@ -459,18 +442,18 @@ button:disabled {
   justify-content: center;
 
   width: 100%;
+  min-height: 38px;
 
-  margin-top: 8px;
+  margin-top: 5px;
   padding: 9px;
 
-  border: none;
-  border-radius: 5px;
+  border: 0;
+  border-radius: 6px;
 
   background: transparent;
-
   color: var(--primary);
 
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -478,60 +461,96 @@ button:disabled {
   background: #e9f2ff;
 }
 
-/* =========================================
-   EMPTY STATE
-========================================= */
+/* MATCHING CARDS */
 
-.empty {
-  padding: 25px 12px;
-
-  color: #626f86;
-
-  font-size: 12px;
-  line-height: 1.7;
-
-  text-align: center;
+.matching-cards {
+  width: 100%;
+  min-width: 0;
+  margin-top: 14px;
 }
 
-/* =========================================
-   SEARCH INPUT
-========================================= */
+.matching-cards h3 {
+  margin: 0 0 10px;
+
+  color: #172b4d;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.card-item,
+.matching-card {
+  display: block;
+
+  width: 100%;
+  min-width: 0;
+
+  margin: 8px 0;
+  padding: 12px;
+
+  border: 1px solid #dfe1e6;
+  border-radius: 7px;
+
+  background: #fff;
+  color: #172b4d;
+}
+
+.card-item:hover,
+.matching-card:hover {
+  border-color: #b3d4ff;
+  background: #f7f8f9;
+}
+
+/* SEARCH */
 
 .search-input {
   display: block;
 
   width: 100%;
   min-width: 0;
+  min-height: 40px;
 
   margin: 10px 0;
 
-  padding: 9px 10px;
+  padding: 9px 11px;
 
   border: 1px solid #dfe1e6;
-  border-radius: 5px;
+  border-radius: 6px;
 
   outline: none;
 
-  background: #ffffff;
-
+  background: #fff;
   color: #172b4d;
 
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .search-input::placeholder {
   color: #8993a4;
 }
 
+.search-input:hover {
+  border-color: #b3bac5;
+}
+
 .search-input:focus {
   border-color: #0c66e4;
-
   box-shadow: 0 0 0 1px #0c66e4;
 }
 
-/* =========================================
-   MODAL OVERLAY
-========================================= */
+/* EMPTY STATE */
+
+.empty {
+  padding: 24px 12px;
+
+  color: #626f86;
+  font-size: 13px;
+  line-height: 1.7;
+
+  text-align: center;
+}
+
+/* MODAL OVERLAY */
 
 .modal-overlay {
   position: fixed;
@@ -545,15 +564,14 @@ button:disabled {
 
   width: 100%;
   height: 100%;
+  height: 100dvh;
 
   padding: 12px;
 
   background: rgba(9, 30, 66, 0.48);
 }
 
-/* =========================================
-   MODAL
-========================================= */
+/* MODAL */
 
 .modal {
   position: relative;
@@ -570,453 +588,214 @@ button:disabled {
   padding: 20px;
 
   border: 1px solid rgba(9, 30, 66, 0.08);
-  border-radius: 9px;
+  border-radius: 10px;
 
-  background: #ffffff;
+  background: #fff;
 
   box-shadow: 0 8px 28px rgba(9, 30, 66, 0.22);
 
   scrollbar-width: thin;
 }
 
-/* =========================================
-   MODAL HEADER
-========================================= */
+/* MODAL HEADER */
 
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
 
-  gap: 8px;
-
-  margin-bottom: 5px;
+  margin-bottom: 8px;
 }
 
 .modal-header h2 {
   margin: 0;
 
   color: #172b4d;
-
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 600;
-  line-height: 24px;
+  line-height: 25px;
 }
 
-/* =========================================
-   MODAL DESCRIPTION
-========================================= */
+/* DESCRIPTION */
 
 .subtitle {
   margin: 8px 0 18px;
 
   color: #626f86;
-
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
-
   line-height: 1.6;
 }
 
-/* =========================================
-   FORM LABELS
-========================================= */
+/* FORM */
 
 .modal form {
   width: 100%;
+  min-width: 0;
 }
 
 .modal label {
   display: flex;
   flex-direction: column;
-
   gap: 7px;
 
   width: 100%;
   min-width: 0;
 
-  margin-bottom: 14px;
+  margin-bottom: 15px;
 
   color: #44546f;
-
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
 }
 
-/* =========================================
-   INPUTS AND SELECTS
-========================================= */
+/* FORM INPUTS */
 
 .modal input,
-.modal select {
+.modal select,
+.modal textarea {
   display: block;
 
   width: 100%;
   min-width: 0;
-  min-height: 38px;
+  min-height: 40px;
 
   padding: 9px 11px;
 
   border: 1px solid #dfe1e6;
-  border-radius: 5px;
+  border-radius: 6px;
 
   outline: none;
 
-  background: #ffffff;
-
+  background: #fff;
   color: #172b4d;
 
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
-
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
 }
 
-.modal input::placeholder {
+.modal input::placeholder,
+.modal textarea::placeholder {
   color: #8993a4;
 }
 
-.modal input:hover,
-.modal select:hover {
-  border-color: #b3bac5;
-}
-
 .modal input:focus,
-.modal select:focus {
+.modal select:focus,
+.modal textarea:focus {
   border-color: #0c66e4;
-
   box-shadow: 0 0 0 1px #0c66e4;
 }
 
-.modal select {
-  cursor: pointer;
-}
-
-/* =========================================
-   LABEL OPTIONS
-========================================= */
+/* LABEL CHECKBOXES */
 
 .label-options {
   display: flex;
   flex-wrap: wrap;
-
-  gap: 6px;
-
-  width: 100%;
+  gap: 8px;
 }
 
-/* =========================================
-   LABEL CHIP
-========================================= */
-
-.label-chip {
-  display: inline-flex;
+.label-option {
+  display: inline-flex !important;
+  flex-direction: row !important;
   align-items: center;
-  justify-content: center;
 
-  min-height: 29px;
-
-  padding: 6px 10px;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 7px 10px;
 
   border: 1px solid #dfe1e6;
-  border-radius: 20px;
+  border-radius: 6px;
 
-  background: #f7f8f9;
-
-  color: #44546f;
-
-  font-size: 11px;
-  font-weight: 500;
-
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
+  background: #fff;
 }
 
-.label-chip:hover {
-  background: #ebecf0;
+.label-option input {
+  width: 15px;
+  min-width: 15px;
+  min-height: 15px;
+  height: 15px;
+
+  margin: 0;
+  padding: 0;
 }
 
-.label-chip.selected {
-  border-color: #0c66e4;
-
-  background: #e9f2ff;
-
-  color: #0c66e4;
-}
-
-.label-chip.selected:hover {
-  background: #deebff;
-}
-
-/* =========================================
-   MODAL ACTIONS
-========================================= */
+/* MODAL ACTIONS */
 
 .modal-actions {
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-
   flex-wrap: wrap;
-
+  justify-content: flex-end;
   gap: 8px;
 
   margin-top: 20px;
-  padding-top: 12px;
+  padding-top: 14px;
 
-  border-top: 1px solid #f1f2f4;
+  border-top: 1px solid #dfe1e6;
 }
 
-/* =========================================
-   BUTTON BASE
-========================================= */
-
-.primary-button,
-.secondary-button,
-.danger-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
+.modal-actions button,
+.modal button[type="submit"] {
   min-height: 38px;
 
-  padding: 9px 16px;
+  padding: 9px 14px;
 
-  border: 1px solid transparent;
-  border-radius: 5px;
-
-  font-size: 12px;
-  font-weight: 600;
-
-  white-space: nowrap;
-
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
-}
-
-/* =========================================
-   PRIMARY BUTTON
-========================================= */
-
-.primary-button {
-  border-color: #0c66e4;
+  border: 0;
+  border-radius: 6px;
 
   background: #0c66e4;
+  color: #fff;
 
-  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.primary-button:hover {
-  border-color: #0055cc;
-
+.modal-actions button:hover,
+.modal button[type="submit"]:hover {
   background: #0055cc;
 }
 
-/* =========================================
-   SECONDARY BUTTON
-========================================= */
-
-.secondary-button {
-  border-color: #dfe1e6;
-
-  background: #ffffff;
-
+.modal-actions .secondary-button {
+  background: #f1f2f4;
   color: #172b4d;
 }
 
-.secondary-button:hover {
-  border-color: #b3bac5;
-
-  background: #f7f8f9;
+.modal-actions .secondary-button:hover {
+  background: #dfe1e6;
 }
 
-/* =========================================
-   DANGER BUTTON
-========================================= */
+/* RESPONSIVE */
 
-.danger-button {
-  border-color: #c9372c;
-
-  background: #c9372c;
-
-  color: #ffffff;
-}
-
-.danger-button:hover {
-  border-color: #ae2e24;
-
-  background: #ae2e24;
-}
-
-/* =========================================
-   DELETE MODAL
-========================================= */
-
-.delete-modal {
-  width: 100%;
-
-  text-align: center;
-}
-
-/* =========================================
-   DELETE ICON
-========================================= */
-
-.delete-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 56px;
-  height: 56px;
-
-  margin: 0 auto 15px;
-
-  border-radius: 50%;
-
-  background: #ffebe6;
-
-  color: #c9372c;
-
-  font-size: 24px;
-}
-
-/* =========================================
-   DELETE DESCRIPTION
-========================================= */
-
-.delete-modal h2 {
-  margin: 0 0 10px;
-
-  color: #172b4d;
-
-  font-size: 17px;
-  font-weight: 600;
-}
-
-.delete-modal p {
-  color: #626f86;
-
-  font-size: 12px;
-
-  line-height: 1.6;
-}
-
-/* =========================================
-   ACCESSIBILITY
-========================================= */
-
-button:focus-visible,
-input:focus-visible,
-select:focus-visible {
-  outline: 2px solid #0c66e4;
-  outline-offset: 2px;
-}
-
-/* =========================================
-   RESPONSIVE
-========================================= */
-
-@media (max-width: 480px) {
-  .header {
-    min-height: 48px;
-
-    padding: 10px 12px;
-  }
-
-  .header-title {
-    gap: 7px;
-
-    font-size: 14px;
-  }
-
+@media (max-width: 360px) {
   .saved-list {
-    padding: 0 8px 10px;
+    padding-right: 9px;
+    padding-left: 9px;
   }
 
   .saved-item {
-    min-height: 64px;
+    gap: 2px;
   }
 
   .saved-main {
-    gap: 6px;
-
-    padding: 9px 2px;
+    gap: 8px;
+    padding-right: 2px;
+    padding-left: 2px;
   }
 
   .saved-icon {
-    width: 32px;
-    min-width: 32px;
-  }
-
-  .actions .icon-button {
-    width: 26px;
-    min-width: 26px;
-  }
-
-  .modal-overlay {
-    padding: 10px;
-  }
-
-  .modal {
-    max-height: calc(100vh - 20px);
-    max-height: calc(100dvh - 20px);
-
-    padding: 15px;
-  }
-
-  .modal-header h2 {
-    font-size: 16px;
-  }
-
-  .modal-actions {
-    gap: 7px;
-  }
-
-  .primary-button,
-  .secondary-button,
-  .danger-button {
-    padding: 9px 12px;
-  }
-}
-
-/* =========================================
-   SMALL MOBILE
-========================================= */
-
-@media (max-width: 340px) {
-  .header {
-    padding: 9px;
-  }
-
-  .saved-list {
-    padding-right: 6px;
-    padding-left: 6px;
+    width: 30px;
+    min-width: 30px;
   }
 
   .saved-text strong {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .saved-text small {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .modal {
-    padding: 12px;
-  }
-
-  .modal-actions {
-    justify-content: space-between;
-  }
-
-  .primary-button,
-  .secondary-button,
-  .danger-button {
-    flex: 1;
+    padding: 15px;
   }
 }
