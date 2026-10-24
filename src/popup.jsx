@@ -181,7 +181,7 @@ function description(filters = EMPTY_FILTER) {
 function Popup() {
   const [savedFilters, setSavedFilters] = useState([]);
   const [filtersLoaded, setFiltersLoaded] = useState(false);
-
+const [currentMemberId, setCurrentMemberId] = useState("");
   const [cards, setCards] = useState([]);
   const [cardsLoaded, setCardsLoaded] = useState(false);
   const [filteredCards, setFilteredCards] = useState([]);
@@ -251,9 +251,16 @@ function Popup() {
           "labels",
           "due",
           "closed",
-          "url"
+          "url",
+          "attachments"
         ),
-        t.member("id"),
+       t.member("id")
+  .then((member) => {
+    if (member && member.id) {
+      setCurrentMemberId(member.id);
+    }
+  })
+  .catch(console.error)
       ]);
 
       if (cancelled) return;
@@ -490,68 +497,151 @@ function Popup() {
     closeModal();
   }
 
- const selectFilter = (filter) => {
-  setActiveFilter(filter);
+ function selectFilter(savedView) {
+  const filters = {
+    ...EMPTY_FILTER,
+    ...(savedView.filters || {}),
+  };
+
+  setActiveFilter(savedView);
+
+  const now = new Date();
+
+  const startToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
+
+  const endToday = new Date(startToday);
+  endToday.setDate(endToday.getDate() + 1);
+
+  const weekEnd = new Date(startToday);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+
+  const monthEnd = new Date(
+    startToday.getFullYear(),
+    startToday.getMonth() + 1,
+    1
+  );
 
   const result = cards.filter((card) => {
-    // Member filter
-    if (filter.member === "me") {
-      if (!card.idMembers?.includes(currentMemberId)) {
+    // MEMBER FILTER
+    if (filters.member === "me") {
+      if (
+        !currentMemberId ||
+        !(card.idMembers || []).includes(currentMemberId)
+      ) {
         return false;
       }
     }
 
-    // Label filter
-    if (filter.label && filter.label !== "all") {
-      const hasLabel = card.labels?.some(
-        (label) => label.name === filter.label
+    // CARD STATUS FILTER
+    if (filters.cardType === "open" && card.closed) {
+      return false;
+    }
+
+    if (filters.cardType === "closed" && !card.closed) {
+      return false;
+    }
+
+    // LABEL FILTER
+    const cardLabels = (card.labels || []).map((label) =>
+      (label.name || "").toLowerCase()
+    );
+
+    if (filters.labels?.length > 0) {
+      const selectedLabels = filters.labels.map((label) =>
+        label.toLowerCase()
       );
 
-      if (!hasLabel) return false;
+      const hasAllLabels = selectedLabels.every((label) =>
+        cardLabels.includes(label)
+      );
+
+      if (!hasAllLabels) {
+        return false;
+      }
     }
 
-    // Keyword filter
-    if (filter.keyword) {
-      const keyword = filter.keyword.toLowerCase();
+    // KEYWORD FILTER
+    const keyword = (filters.keyword || "")
+      .trim()
+      .toLowerCase();
 
-      const matches =
-        card.name?.toLowerCase().includes(keyword) ||
-        card.desc?.toLowerCase().includes(keyword);
+    if (keyword) {
+      const cardText = `${card.name || ""} ${card.desc || ""}`
+        .toLowerCase();
 
-      if (!matches) return false;
+      if (!cardText.includes(keyword)) {
+        return false;
+      }
     }
 
-    // Card type filter
-    if (filter.cardType === "open" && card.closed) {
+    // DUE DATE FILTER
+    const dueDate = card.due
+      ? new Date(card.due)
+      : null;
+
+    if (filters.dueDate === "none" && dueDate) {
       return false;
     }
 
-    if (filter.cardType === "closed" && !card.closed) {
+    if (
+      filters.dueDate === "today" &&
+      (!dueDate ||
+        dueDate < startToday ||
+        dueDate >= endToday)
+    ) {
       return false;
     }
 
-    // Due date filter
-    if (filter.dueDate) {
-      const due = card.due ? new Date(card.due) : null;
-      const today = new Date();
+    if (
+      filters.dueDate === "week" &&
+      (!dueDate ||
+        dueDate < startToday ||
+        dueDate >= weekEnd)
+    ) {
+      return false;
+    }
 
-      if (filter.dueDate === "none" && due) return false;
+    if (
+      filters.dueDate === "month" &&
+      (!dueDate ||
+        dueDate < startToday ||
+        dueDate >= monthEnd)
+    ) {
+      return false;
+    }
 
-      if (filter.dueDate === "overdue") {
-        if (!due || due >= today || card.closed) return false;
+    if (
+      filters.dueDate === "overdue" &&
+      (!dueDate ||
+        dueDate >= startToday ||
+        card.closed)
+    ) {
+      return false;
+    }
+
+    // ATTACHMENT FILTER
+    if (
+      filters.attachment !== "any" &&
+      Array.isArray(card.attachments)
+    ) {
+      const hasAttachment = card.attachments.length > 0;
+
+      if (
+        filters.attachment === "yes" &&
+        !hasAttachment
+      ) {
+        return false;
       }
 
-      if (filter.dueDate === "today") {
-        if (!due || due.toDateString() !== today.toDateString()) {
-          return false;
-        }
-      }
-
-      if (filter.dueDate === "week") {
-        const end = new Date(today);
-        end.setDate(today.getDate() + 7);
-
-        if (!due || due < today || due > end) return false;
+      if (
+        filters.attachment === "no" &&
+        hasAttachment
+      ) {
+        return false;
       }
     }
 
@@ -559,7 +649,7 @@ function Popup() {
   });
 
   setFilteredCards(result);
-};
+}
 
   function renderSelect(field, label) {
     return (
