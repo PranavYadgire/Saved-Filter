@@ -1,8 +1,5 @@
-
 import React, { useEffect, useState } from "react";
 import "./styles.css";
-
-const STORAGE_KEY = "saved-filter-views";
 
 const DEFAULT_FILTERS = [
   {
@@ -121,30 +118,21 @@ const OPTIONS = {
   ],
 };
 
+const STORAGE_KEY = "savedFilterViews";
+
 function makeId() {
-  return Date.now().toString(36) +
-    Math.random().toString(36).slice(2, 8);
+  return (
+    Date.now().toString(36) +
+    Math.random().toString(36).slice(2, 8)
+  );
 }
 
-function loadFilters() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) return parsed;
-    }
-  } catch (error) {
-    console.error(error);
-  }
-
-  return DEFAULT_FILTERS;
-}
-
-function description(filters) {
+function description(filters = EMPTY_FILTER) {
   const parts = [];
 
-  if (filters.member === "me") parts.push("Members: Me");
-  else if (filters.member !== "any") {
+  if (filters.member === "me") {
+    parts.push("Members: Me");
+  } else if (filters.member !== "any") {
     parts.push("Members: " + filters.member);
   }
 
@@ -157,7 +145,10 @@ function description(filters) {
   };
 
   if (filters.dueDate !== "any") {
-    parts.push("Due date: " + (due[filters.dueDate] || filters.dueDate));
+    parts.push(
+      "Due date: " +
+        (due[filters.dueDate] || filters.dueDate)
+    );
   }
 
   if (filters.labels?.length) {
@@ -168,43 +159,190 @@ function description(filters) {
     parts.push("Card type: " + filters.cardType);
   }
 
+  if (filters.checklist !== "any") {
+    parts.push("Checklist: " + filters.checklist);
+  }
+
+  if (filters.attachment !== "any") {
+    parts.push("Attachment: " + filters.attachment);
+  }
+
   if (filters.keyword?.trim()) {
     parts.push("Keyword: " + filters.keyword);
+  }
+
+  if (filters.customFields !== "any") {
+    parts.push("Custom fields: " + filters.customFields);
   }
 
   return parts.length ? parts.join(" · ") : "All cards";
 }
 
 function Popup() {
-  const [savedFilters, setSavedFilters] = useState(loadFilters);
+  const [savedFilters, setSavedFilters] = useState([]);
+  const [filtersLoaded, setFiltersLoaded] = useState(false);
+
+  const [cards, setCards] = useState([]);
+  const [cardsLoaded, setCardsLoaded] = useState(false);
+  const [filteredCards, setFilteredCards] = useState([]);
+
   const [modal, setModal] = useState(null);
   const [editingFilter, setEditingFilter] = useState(null);
   const [menuFilter, setMenuFilter] = useState(null);
   const [activeFilter, setActiveFilter] = useState(null);
   const [search, setSearch] = useState("");
-  const [form, setForm] = useState({ name: "", ...EMPTY_FILTER });
+  const [form, setForm] = useState({
+    name: "",
+    ...EMPTY_FILTER,
+  });
   const [error, setError] = useState("");
 
+  // Load saved filters from Trello board shared storage.
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedFilters));
-    } catch (error) {
-      console.error("Unable to save filters", error);
-    }
-  }, [savedFilters]);
+  let cancelled = false;
 
+  async function loadSavedFilters() {
+    try {
+      if (
+        !window.TrelloPowerUp ||
+        typeof window.TrelloPowerUp.iframe !== "function"
+      ) {
+        throw new Error(
+          "Trello Power-Up client is not available."
+        );
+      }
+
+      const t = window.TrelloPowerUp.iframe();
+
+      const saved = await t.get(
+        "board",
+        "shared",
+        STORAGE_KEY
+      );
+
+      if (!cancelled) {
+        setSavedFilters(
+          Array.isArray(saved) ? saved : DEFAULT_FILTERS
+        );
+      }
+    } catch (error) {
+      console.error("Unable to load saved filters:", error);
+
+      if (!cancelled) {
+        setSavedFilters(DEFAULT_FILTERS);
+      }
+    } finally {
+      if (!cancelled) {
+        setFiltersLoaded(true);
+      }
+    }
+  }
+
+  async function loadCards() {
+    try {
+      const t = window.TrelloPowerUp.iframe();
+
+      const [trelloCards, member] = await Promise.all([
+        t.cards(
+          "id",
+          "name",
+          "desc",
+          "idMembers",
+          "labels",
+          "due",
+          "closed",
+          "url"
+        ),
+        t.member("id"),
+      ]);
+
+      if (cancelled) return;
+
+      setCards(trelloCards || []);
+      setCurrentMemberId(member?.id || "");
+    } catch (error) {
+      console.error("Unable to load Trello cards:", error);
+
+      if (!cancelled) {
+        setCards([]);
+        setCurrentMemberId("");
+      }
+    } finally {
+      if (!cancelled) {
+        setCardsLoaded(true);
+      }
+    }
+  }
+
+  loadSavedFilters();
+  loadCards();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
+
+  // Save filters to Trello only after initial loading completes.
+  useEffect(() => {
+    if (!filtersLoaded) return;
+
+    let cancelled = false;
+
+    async function saveSavedFilters() {
+      try {
+        if (
+          !window.TrelloPowerUp ||
+          typeof window.TrelloPowerUp.iframe !== "function"
+        ) {
+          throw new Error(
+            "Trello Power-Up client is not available."
+          );
+        }
+
+        const t = window.TrelloPowerUp.iframe();
+
+        await t.set(
+          "board",
+          "shared",
+          STORAGE_KEY,
+          savedFilters
+        );
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Unable to save filters:", error);
+        }
+      }
+    }
+
+    saveSavedFilters();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [savedFilters, filtersLoaded]);
+
+  // Close the options menu when clicking outside it.
   useEffect(() => {
     function closeMenu() {
       setMenuFilter(null);
     }
 
     document.addEventListener("click", closeMenu);
-    return () => document.removeEventListener("click", closeMenu);
+
+    return () => {
+      document.removeEventListener("click", closeMenu);
+    };
   }, []);
 
   function openCreate() {
     setEditingFilter(null);
-    setForm({ name: "", ...EMPTY_FILTER, labels: [] });
+
+    setForm({
+      name: "",
+      ...EMPTY_FILTER,
+      labels: [],
+    });
+
     setError("");
     setMenuFilter(null);
     setModal("create");
@@ -212,12 +350,14 @@ function Popup() {
 
   function openEdit(filter) {
     setEditingFilter(filter);
+
     setForm({
       name: filter.name,
       ...EMPTY_FILTER,
       ...filter.filters,
-      labels: [...(filter.filters.labels || [])],
+      labels: [...(filter.filters?.labels || [])],
     });
+
     setError("");
     setMenuFilter(null);
     setModal("edit");
@@ -225,12 +365,14 @@ function Popup() {
 
   function openRename(filter) {
     setEditingFilter(filter);
+
     setForm({
       name: filter.name,
       ...EMPTY_FILTER,
       ...filter.filters,
-      labels: [...(filter.filters.labels || [])],
+      labels: [...(filter.filters?.labels || [])],
     });
+
     setError("");
     setMenuFilter(null);
     setModal("rename");
@@ -243,7 +385,10 @@ function Popup() {
   }
 
   function update(field, value) {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   }
 
   function toggleLabel(label) {
@@ -292,7 +437,9 @@ function Popup() {
 
     setSavedFilters((prev) =>
       editingFilter
-        ? prev.map((item) => item.id === editingFilter.id ? next : item)
+        ? prev.map((item) =>
+            item.id === editingFilter.id ? next : item
+          )
         : [...prev, next]
     );
 
@@ -320,7 +467,9 @@ function Popup() {
 
     setSavedFilters((prev) =>
       prev.map((item) =>
-        item.id === editingFilter.id ? { ...item, name } : item
+        item.id === editingFilter.id
+          ? { ...item, name }
+          : item
       )
     );
 
@@ -341,21 +490,92 @@ function Popup() {
     closeModal();
   }
 
-  function selectFilter(filter) {
-    setActiveFilter(filter);
-    setMenuFilter(null);
-  }
+ const selectFilter = (filter) => {
+  setActiveFilter(filter);
+
+  const result = cards.filter((card) => {
+    // Member filter
+    if (filter.member === "me") {
+      if (!card.idMembers?.includes(currentMemberId)) {
+        return false;
+      }
+    }
+
+    // Label filter
+    if (filter.label && filter.label !== "all") {
+      const hasLabel = card.labels?.some(
+        (label) => label.name === filter.label
+      );
+
+      if (!hasLabel) return false;
+    }
+
+    // Keyword filter
+    if (filter.keyword) {
+      const keyword = filter.keyword.toLowerCase();
+
+      const matches =
+        card.name?.toLowerCase().includes(keyword) ||
+        card.desc?.toLowerCase().includes(keyword);
+
+      if (!matches) return false;
+    }
+
+    // Card type filter
+    if (filter.cardType === "open" && card.closed) {
+      return false;
+    }
+
+    if (filter.cardType === "closed" && !card.closed) {
+      return false;
+    }
+
+    // Due date filter
+    if (filter.dueDate) {
+      const due = card.due ? new Date(card.due) : null;
+      const today = new Date();
+
+      if (filter.dueDate === "none" && due) return false;
+
+      if (filter.dueDate === "overdue") {
+        if (!due || due >= today || card.closed) return false;
+      }
+
+      if (filter.dueDate === "today") {
+        if (!due || due.toDateString() !== today.toDateString()) {
+          return false;
+        }
+      }
+
+      if (filter.dueDate === "week") {
+        const end = new Date(today);
+        end.setDate(today.getDate() + 7);
+
+        if (!due || due < today || due > end) return false;
+      }
+    }
+
+    return true;
+  });
+
+  setFilteredCards(result);
+};
 
   function renderSelect(field, label) {
     return (
       <label className="filter-field" key={field}>
         <span className="field-label">{label}</span>
+
         <select
           value={form[field] ?? "any"}
-          onChange={(event) => update(field, event.target.value)}
+          onChange={(event) =>
+            update(field, event.target.value)
+          }
         >
           {OPTIONS[field].map(([value, text]) => (
-            <option value={value} key={value}>{text}</option>
+            <option value={value} key={value}>
+              {text}
+            </option>
           ))}
         </select>
       </label>
@@ -363,11 +583,26 @@ function Popup() {
   }
 
   const visibleFilters = savedFilters.filter((filter) =>
-    filter.name.toLowerCase().includes(search.toLowerCase())
+    filter.name
+      .toLowerCase()
+      .includes(search.toLowerCase())
   );
 
+  // Show loading screen while Trello storage is loading.
+if (!filtersLoaded || !cardsLoaded) {    return (
+      <div className="app">
+        <div className="empty">
+          Loading saved filters...
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="app" onClick={() => setMenuFilter(null)}>
+    <div
+      className="app"
+      onClick={() => setMenuFilter(null)}
+    >
       <header className="header">
         <div className="header-title">
           <span className="header-icon">◈</span>
@@ -378,7 +613,9 @@ function Popup() {
       <main className="saved-list">
         <div className="list-header">
           <h3>Saved Filters</h3>
-          <span className="filter-count">{savedFilters.length}</span>
+          <span className="filter-count">
+            {savedFilters.length}
+          </span>
         </div>
 
         <input
@@ -386,7 +623,9 @@ function Popup() {
           type="search"
           placeholder="Search saved filters..."
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) =>
+            setSearch(event.target.value)
+          }
         />
 
         {visibleFilters.length === 0 ? (
@@ -398,7 +637,9 @@ function Popup() {
             <div
               className={
                 "saved-item" +
-                (activeFilter?.id === filter.id ? " active" : "")
+                (activeFilter?.id === filter.id
+                  ? " active"
+                  : "")
               }
               key={filter.id}
             >
@@ -406,16 +647,24 @@ function Popup() {
                 className="saved-main"
                 onClick={() => selectFilter(filter)}
               >
-                <span className="saved-icon">{filter.icon || "◇"}</span>
+                <span className="saved-icon">
+                  {filter.icon || "◇"}
+                </span>
+
                 <span className="saved-text">
                   <strong>{filter.name}</strong>
-                  <small>{description(filter.filters)}</small>
+
+                  <small>
+                    {description(filter.filters)}
+                  </small>
                 </span>
               </button>
 
               <div
                 className="actions"
-                onClick={(event) => event.stopPropagation()}
+                onClick={(event) =>
+                  event.stopPropagation()
+                }
               >
                 <button
                   type="button"
@@ -423,7 +672,11 @@ function Popup() {
                   aria-label="Filter options"
                   title="More options"
                   onClick={() =>
-                    setMenuFilter(menuFilter === filter.id ? null : filter.id)
+                    setMenuFilter(
+                      menuFilter === filter.id
+                        ? null
+                        : filter.id
+                    )
                   }
                 >
                   ⋯
@@ -431,12 +684,18 @@ function Popup() {
 
                 {menuFilter === filter.id && (
                   <div className="item-menu">
-                    <button onClick={() => openEdit(filter)}>
+                    <button
+                      onClick={() => openEdit(filter)}
+                    >
                       <span>✎</span> Edit
                     </button>
-                    <button onClick={() => openRename(filter)}>
+
+                    <button
+                      onClick={() => openRename(filter)}
+                    >
                       <span>▧</span> Rename
                     </button>
+
                     <button
                       className="delete-menu-item"
                       onClick={() => {
@@ -454,7 +713,10 @@ function Popup() {
           ))
         )}
 
-        <button className="create-button" onClick={openCreate}>
+        <button
+          className="create-button"
+          onClick={openCreate}
+        >
           <span>＋</span>
           Create a filter
         </button>
@@ -465,9 +727,17 @@ function Popup() {
               <span className="active-dot" />
               Active filter
             </div>
+
             <strong>{activeFilter.name}</strong>
-            <p>{description(activeFilter.filters)}</p>
-            <button className="clear-button" onClick={() => setActiveFilter(null)}>
+
+            <p>
+              {description(activeFilter.filters)}
+            </p>
+
+            <button
+              className="clear-button"
+              onClick={() => setActiveFilter(null)}
+            >
               Clear filter
             </button>
           </section>
@@ -478,31 +748,63 @@ function Popup() {
         <div
           className="modal-overlay"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) closeModal();
+            if (
+              event.target === event.currentTarget
+            ) {
+              closeModal();
+            }
           }}
         >
           <div className="modal">
             <div className="modal-header">
               <h2>
-                {modal === "create" && "Create a Filter"}
-                {modal === "edit" && "Edit Saved View"}
-                {modal === "rename" && "Rename Saved View"}
-                {modal === "delete" && "Delete Saved View?"}
+                {modal === "create" &&
+                  "Create a Filter"}
+
+                {modal === "edit" &&
+                  "Edit Saved View"}
+
+                {modal === "rename" &&
+                  "Rename Saved View"}
+
+                {modal === "delete" &&
+                  "Delete Saved View?"}
               </h2>
-              <button className="icon-button" onClick={closeModal}>×</button>
+
+              <button
+                className="icon-button"
+                onClick={closeModal}
+              >
+                ×
+              </button>
             </div>
 
             {modal === "delete" ? (
               <div className="delete-modal">
-                <div className="delete-icon">⌫</div>
+                <div className="delete-icon">
+                  ⌫
+                </div>
+
                 <p>
-                  Delete <strong>{editingFilter?.name}</strong> permanently?
+                  Delete{" "}
+                  <strong>
+                    {editingFilter?.name}
+                  </strong>{" "}
+                  permanently?
                 </p>
+
                 <div className="modal-actions">
-                  <button className="secondary-button" onClick={closeModal}>
+                  <button
+                    className="secondary-button"
+                    onClick={closeModal}
+                  >
                     Cancel
                   </button>
-                  <button className="danger-button" onClick={deleteFilter}>
+
+                  <button
+                    className="danger-button"
+                    onClick={deleteFilter}
+                  >
                     Delete
                   </button>
                 </div>
@@ -516,12 +818,17 @@ function Popup() {
                 </p>
 
                 <label className="filter-field">
-                  <span className="field-label">View Name *</span>
+                  <span className="field-label">
+                    View Name *
+                  </span>
+
                   <input
                     autoFocus
                     value={form.name}
                     placeholder="Enter filter name"
-                    onChange={(event) => update("name", event.target.value)}
+                    onChange={(event) =>
+                      update("name", event.target.value)
+                    }
                   />
                 </label>
 
@@ -529,11 +836,21 @@ function Popup() {
                   <div className="filter-settings">
                     <h3>Filter Settings</h3>
 
-                    {renderSelect("member", "Members")}
-                    {renderSelect("dueDate", "Due date")}
+                    {renderSelect(
+                      "member",
+                      "Members"
+                    )}
+
+                    {renderSelect(
+                      "dueDate",
+                      "Due date"
+                    )}
 
                     <div className="filter-field">
-                      <span className="field-label">Labels</span>
+                      <span className="field-label">
+                        Labels
+                      </span>
+
                       <div className="label-options">
                         {LABELS.map((label) => (
                           <button
@@ -541,47 +858,93 @@ function Popup() {
                             key={label}
                             className={
                               "label-chip" +
-                              (form.labels.includes(label) ? " selected" : "")
+                              (form.labels.includes(label)
+                                ? " selected"
+                                : "")
                             }
-                            onClick={() => toggleLabel(label)}
+                            onClick={() =>
+                              toggleLabel(label)
+                            }
                           >
                             {label}
-                            {form.labels.includes(label) ? " ✓" : ""}
+
+                            {form.labels.includes(label)
+                              ? " ✓"
+                              : ""}
                           </button>
                         ))}
                       </div>
                     </div>
 
-                    {renderSelect("cardType", "Card type")}
-                    {renderSelect("checklist", "Checklist")}
-                    {renderSelect("attachment", "Attachment")}
+                    {renderSelect(
+                      "cardType",
+                      "Card type"
+                    )}
+
+                    {renderSelect(
+                      "checklist",
+                      "Checklist"
+                    )}
+
+                    {renderSelect(
+                      "attachment",
+                      "Attachment"
+                    )}
 
                     <label className="filter-field">
-                      <span className="field-label">Keyword</span>
+                      <span className="field-label">
+                        Keyword
+                      </span>
+
                       <input
                         value={form.keyword}
                         placeholder="Enter keyword"
-                        onChange={(event) => update("keyword", event.target.value)}
+                        onChange={(event) =>
+                          update(
+                            "keyword",
+                            event.target.value
+                          )
+                        }
                       />
                     </label>
 
-                    {renderSelect("customFields", "Custom fields")}
+                    {renderSelect(
+                      "customFields",
+                      "Custom fields"
+                    )}
                   </div>
                 )}
 
-                {error && <div className="error">{error}</div>}
+                {error && (
+                  <div className="error">
+                    {error}
+                  </div>
+                )}
 
                 <div className="modal-actions">
-                  <button className="secondary-button" onClick={closeModal}>
+                  <button
+                    className="secondary-button"
+                    onClick={closeModal}
+                  >
                     Cancel
                   </button>
+
                   <button
                     className="primary-button"
-                    onClick={modal === "rename" ? renameFilter : saveFilter}
+                    onClick={
+                      modal === "rename"
+                        ? renameFilter
+                        : saveFilter
+                    }
                   >
-                    {modal === "create" && "Save Filter"}
-                    {modal === "edit" && "Update View"}
-                    {modal === "rename" && "Rename"}
+                    {modal === "create" &&
+                      "Save Filter"}
+
+                    {modal === "edit" &&
+                      "Update View"}
+
+                    {modal === "rename" &&
+                      "Rename"}
                   </button>
                 </div>
               </>
