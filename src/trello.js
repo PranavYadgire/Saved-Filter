@@ -299,47 +299,35 @@ export async function getBoardCardCounts() {
 
 export function filterTrelloCards(cards, filters = {}) {
   const today = new Date();
-
   today.setHours(0, 0, 0, 0);
 
   const weekEnd = new Date(today);
-
   weekEnd.setDate(today.getDate() + 7);
 
-  return cards.filter((card) => {
-    /* MEMBER FILTER */
-
+  return (cards || []).filter((card) => {
+    // MEMBER FILTER
     if (filters.member && filters.member !== "any") {
-      if (
-        filters.member === "me" &&
-        filters.currentMemberId
-      ) {
+      const members = card.members || [];
+
+      if (filters.member === "me") {
         if (
-          !card.members.includes(filters.currentMemberId)
+          !filters.currentMemberId ||
+          !members.includes(filters.currentMemberId)
         ) {
           return false;
         }
-      } else if (filters.member !== "me") {
-        if (!card.members.includes(filters.member)) {
-          return false;
-        }
+      } else if (!members.includes(filters.member)) {
+        return false;
       }
     }
 
-    /* DUE DATE FILTER */
-
+    // DUE DATE FILTER
     if (filters.dueDate && filters.dueDate !== "any") {
-      const due = card.due
-        ? new Date(card.due)
-        : null;
+      const due = card.due ? new Date(card.due) : null;
 
-      if (filters.dueDate === "none" && due) {
-        return false;
-      }
+      if (filters.dueDate === "none" && due) return false;
 
-      if (filters.dueDate !== "none" && !due) {
-        return false;
-      }
+      if (filters.dueDate !== "none" && !due) return false;
 
       if (due) {
         due.setHours(0, 0, 0, 0);
@@ -347,98 +335,74 @@ export function filterTrelloCards(cards, filters = {}) {
         if (
           filters.dueDate === "today" &&
           due.getTime() !== today.getTime()
-        ) {
-          return false;
-        }
+        ) return false;
 
         if (
           filters.dueDate === "week" &&
           (due < today || due >= weekEnd)
-        ) {
-          return false;
-        }
+        ) return false;
 
         if (
           filters.dueDate === "overdue" &&
           (due >= today || card.dueComplete)
-        ) {
-          return false;
-        }
+        ) return false;
       }
     }
 
-    /* LABEL FILTER */
-
-    if (filters.labels && filters.labels.length > 0) {
-      const cardLabels = card.labels.map(
-        (label) => label.name
+    // LABEL FILTER
+    if (filters.labels?.length) {
+      const cardLabels = (card.labels || []).map((label) =>
+        (label.name || "").trim().toLowerCase()
       );
 
-      const hasLabel = filters.labels.some(
-        (label) => cardLabels.includes(label)
+      const selectedLabels = filters.labels.map((label) =>
+        (typeof label === "string" ? label : label.name || "")
+          .trim()
+          .toLowerCase()
       );
 
-      if (!hasLabel) {
+      if (!selectedLabels.some((label) => cardLabels.includes(label))) {
         return false;
       }
     }
 
-    /* CARD TYPE FILTER */
+    // CARD TYPE
+    if (filters.cardType === "open" && card.closed) return false;
+    if (filters.cardType === "closed" && !card.closed) return false;
 
-    if (filters.cardType === "open" && card.closed) {
+    // KEYWORD
+    if (filters.keyword?.trim()) {
+      const keyword = filters.keyword.trim().toLowerCase();
+
+      const title = (card.title || "").toLowerCase();
+      const description = (card.description || "").toLowerCase();
+
+      if (!title.includes(keyword) && !description.includes(keyword)) {
+        return false;
+      }
+    }
+
+    // ATTACHMENT
+    const attachments = card.attachments || [];
+
+    if (filters.attachment === "yes" && !attachments.length) {
       return false;
     }
 
-    if (
-      filters.cardType === "closed" &&
-      !card.closed
-    ) {
+    if (filters.attachment === "no" && attachments.length) {
       return false;
     }
 
-    /* KEYWORD FILTER */
-
-    if (filters.keyword && filters.keyword.trim()) {
-      const keyword = filters.keyword
-        .trim()
-        .toLowerCase();
-
-      const title = card.title.toLowerCase();
-
-      const description = card.description.toLowerCase();
-
-      if (
-        !title.includes(keyword) &&
-        !description.includes(keyword)
-      ) {
-        return false;
-      }
-    }
-
-    /* ATTACHMENT FILTER */
-
-    if (filters.attachment === "yes") {
-      if (!card.attachments.length) {
-        return false;
-      }
-    }
-
-    if (filters.attachment === "no") {
-      if (card.attachments.length) {
-        return false;
-      }
-    }
-
-    /* CHECKLIST FILTER */
-
-    if (filters.checklist !== "any") {
+    // CHECKLIST
+    if (filters.checklist && filters.checklist !== "any") {
       const checklists = card.checklists || [];
 
-      if (!checklists.length) {
-        return false;
-      }
+      if (!checklists.length) return false;
     }
 
     return true;
   });
 }
+
+
+   
