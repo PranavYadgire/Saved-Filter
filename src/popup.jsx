@@ -481,7 +481,7 @@ async function loadCards() {
     closeModal();
   }
 
- function selectFilter(savedView) {
+function selectFilter(savedView) {
   const filters = {
     ...EMPTY_FILTER,
     ...(savedView.filters || {}),
@@ -489,154 +489,18 @@ async function loadCards() {
 
   setActiveFilter(savedView);
 
-  const now = new Date();
-
-  const startToday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate()
-  );
-
-  const endToday = new Date(startToday);
-  endToday.setDate(endToday.getDate() + 1);
-
-  const weekEnd = new Date(startToday);
-  weekEnd.setDate(weekEnd.getDate() + 7);
-
-  const monthEnd = new Date(
-    startToday.getFullYear(),
-    startToday.getMonth() + 1,
-    1
-  );
-console.log("All Trello cards:", cards);
-console.log("Selected filter:", filters);
-console.log("Current member ID:", currentMemberId);
-  const result = cards.filter((card) => {
-    // MEMBER FILTER
-    if (filters.member === "me") {
-      if (
-        !currentMemberId ||
-        !(card.idMembers || []).includes(currentMemberId)
-      ) {
-        return false;
-      }
-    }
-
-    // CARD STATUS FILTER
-    if (filters.cardType === "open" && card.closed) {
-      return false;
-    }
-
-    if (filters.cardType === "closed" && !card.closed) {
-      return false;
-    }
-
-    // LABEL FILTER
-    const cardLabels = (card.labels || []).map((label) =>
-      (label.name || "").toLowerCase()
-    );
-
-    if (filters.labels?.length > 0) {
-      const selectedLabels = filters.labels.map((label) =>
-        label.toLowerCase()
-      );
-
-      const hasAllLabels = selectedLabels.every((label) =>
-        cardLabels.includes(label)
-      );
-
-      if (!hasAllLabels) {
-        return false;
-      }
-    }
-
-    // KEYWORD FILTER
-    const keyword = (filters.keyword || "")
-      .trim()
-      .toLowerCase();
-
-    if (keyword) {
-      const cardText = `${card.name || ""} ${card.desc || ""}`
-        .toLowerCase();
-
-      if (!cardText.includes(keyword)) {
-        return false;
-      }
-    }
-
-    // DUE DATE FILTER
-    const dueDate = card.due
-      ? new Date(card.due)
-      : null;
-
-    if (filters.dueDate === "none" && dueDate) {
-      return false;
-    }
-
-    if (
-      filters.dueDate === "today" &&
-      (!dueDate ||
-        dueDate < startToday ||
-        dueDate >= endToday)
-    ) {
-      return false;
-    }
-
-    if (
-      filters.dueDate === "week" &&
-      (!dueDate ||
-        dueDate < startToday ||
-        dueDate >= weekEnd)
-    ) {
-      return false;
-    }
-
-    if (
-      filters.dueDate === "month" &&
-      (!dueDate ||
-        dueDate < startToday ||
-        dueDate >= monthEnd)
-    ) {
-      return false;
-    }
-
-    if (
-      filters.dueDate === "overdue" &&
-      (!dueDate ||
-        dueDate >= startToday ||
-        card.closed)
-    ) {
-      return false;
-    }
-
-    // ATTACHMENT FILTER
-    if (
-      filters.attachment !== "any" &&
-      Array.isArray(card.attachments)
-    ) {
-      const hasAttachment = card.attachments.length > 0;
-
-      if (
-        filters.attachment === "yes" &&
-        !hasAttachment
-      ) {
-        return false;
-      }
-
-      if (
-        filters.attachment === "no" &&
-        hasAttachment
-      ) {
-        return false;
-      }
-    }
-
-    return true;
+  const result = filterTrelloCards(cards, {
+    ...filters,
+    currentMemberId,
   });
 
+  console.log("Selected saved filter:", savedView.name);
+  console.log("Filter settings:", filters);
   console.log("Matching cards:", result);
-setFilteredCards(result);
+
+  setFilteredCards(result);
 }
+
 
   function renderSelect(field, label) {
     return (
