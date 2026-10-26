@@ -297,6 +297,10 @@ export async function getBoardCardCounts() {
    APPLY FILTER TO REAL BOARD CARDS
 ========================================= */
 
+/* =========================================
+   APPLY FILTER TO TRELLO CARDS
+========================================= */
+
 export function filterTrelloCards(cards, filters = {}) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -304,30 +308,64 @@ export function filterTrelloCards(cards, filters = {}) {
   const weekEnd = new Date(today);
   weekEnd.setDate(today.getDate() + 7);
 
-  return (cards || []).filter((card) => {
-    // MEMBER FILTER
-    if (filters.member && filters.member !== "any") {
-      const members = card.members || [];
+  const monthStart = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    1
+  );
 
-      if (filters.member === "me") {
-        if (
-          !filters.currentMemberId ||
-          !members.includes(filters.currentMemberId)
-        ) {
-          return false;
-        }
-      } else if (!members.includes(filters.member)) {
+  const monthEnd = new Date(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    1
+  );
+
+  return (cards || []).filter((card) => {
+    /* =====================================
+       MEMBER FILTER
+    ===================================== */
+
+    const members = card.members || [];
+
+    if (filters.member === "me") {
+      if (!filters.currentMemberId) {
+        return false;
+      }
+
+      if (!members.includes(filters.currentMemberId)) {
+        return false;
+      }
+    } else if (
+      filters.member &&
+      filters.member !== "any"
+    ) {
+      if (!members.includes(filters.member)) {
         return false;
       }
     }
 
-    // DUE DATE FILTER
-    if (filters.dueDate && filters.dueDate !== "any") {
-      const due = card.due ? new Date(card.due) : null;
+    /* =====================================
+       DUE DATE FILTER
+    ===================================== */
 
-      if (filters.dueDate === "none" && due) return false;
+    if (
+      filters.dueDate &&
+      filters.dueDate !== "any"
+    ) {
+      const due = card.due
+        ? new Date(card.due)
+        : null;
 
-      if (filters.dueDate !== "none" && !due) return false;
+      if (filters.dueDate === "none" && due) {
+        return false;
+      }
+
+      if (
+        filters.dueDate !== "none" &&
+        (!due || Number.isNaN(due.getTime()))
+      ) {
+        return false;
+      }
 
       if (due) {
         due.setHours(0, 0, 0, 0);
@@ -335,70 +373,216 @@ export function filterTrelloCards(cards, filters = {}) {
         if (
           filters.dueDate === "today" &&
           due.getTime() !== today.getTime()
-        ) return false;
+        ) {
+          return false;
+        }
 
         if (
           filters.dueDate === "week" &&
           (due < today || due >= weekEnd)
-        ) return false;
+        ) {
+          return false;
+        }
+
+        if (
+          filters.dueDate === "month" &&
+          (due < monthStart || due >= monthEnd)
+        ) {
+          return false;
+        }
 
         if (
           filters.dueDate === "overdue" &&
           (due >= today || card.dueComplete)
-        ) return false;
+        ) {
+          return false;
+        }
       }
     }
 
-    // LABEL FILTER
-    if (filters.labels?.length) {
-      const cardLabels = (card.labels || []).map((label) =>
+    /* =====================================
+       LABEL FILTER
+    ===================================== */
+
+    const cardLabels = (card.labels || []).map(
+      (label) =>
         (label.name || "").trim().toLowerCase()
+    );
+
+    const selectedLabels = (
+      filters.labels || []
+    ).map((label) =>
+      (
+        typeof label === "string"
+          ? label
+          : label.name || ""
+      )
+        .trim()
+        .toLowerCase()
+    );
+
+    if (selectedLabels.length > 0) {
+      const hasLabel = selectedLabels.some(
+        (label) => cardLabels.includes(label)
       );
 
-      const selectedLabels = filters.labels.map((label) =>
-        (typeof label === "string" ? label : label.name || "")
-          .trim()
-          .toLowerCase()
-      );
-
-      if (!selectedLabels.some((label) => cardLabels.includes(label))) {
+      if (!hasLabel) {
         return false;
       }
     }
 
-    // CARD TYPE
-    if (filters.cardType === "open" && card.closed) return false;
-    if (filters.cardType === "closed" && !card.closed) return false;
+    /* =====================================
+       CARD TYPE FILTER
+    ===================================== */
 
-    // KEYWORD
+    if (
+      filters.cardType === "open" &&
+      card.closed
+    ) {
+      return false;
+    }
+
+    if (
+      filters.cardType === "closed" &&
+      !card.closed
+    ) {
+      return false;
+    }
+
+    /* =====================================
+       KEYWORD FILTER
+    ===================================== */
+
     if (filters.keyword?.trim()) {
-      const keyword = filters.keyword.trim().toLowerCase();
+      const keyword = filters.keyword
+        .trim()
+        .toLowerCase();
 
-      const title = (card.title || "").toLowerCase();
-      const description = (card.description || "").toLowerCase();
+      const title = (
+        card.title || ""
+      ).toLowerCase();
 
-      if (!title.includes(keyword) && !description.includes(keyword)) {
+      const description = (
+        card.description || ""
+      ).toLowerCase();
+
+      if (
+        !title.includes(keyword) &&
+        !description.includes(keyword)
+      ) {
         return false;
       }
     }
 
-    // ATTACHMENT
+    /* =====================================
+       ATTACHMENT FILTER
+    ===================================== */
+
     const attachments = card.attachments || [];
 
-    if (filters.attachment === "yes" && !attachments.length) {
+    if (
+      filters.attachment === "yes" &&
+      attachments.length === 0
+    ) {
       return false;
     }
 
-    if (filters.attachment === "no" && attachments.length) {
+    if (
+      filters.attachment === "no" &&
+      attachments.length > 0
+    ) {
       return false;
     }
 
-    // CHECKLIST
-    if (filters.checklist && filters.checklist !== "any") {
+    /* =====================================
+       CHECKLIST FILTER
+    ===================================== */
+
+    if (
+      filters.checklist &&
+      filters.checklist !== "any"
+    ) {
       const checklists = card.checklists || [];
 
-      if (!checklists.length) return false;
+      if (checklists.length === 0) {
+        return false;
+      }
+
+      const items = checklists.flatMap(
+        (checklist) =>
+          checklist.checkItems || []
+      );
+
+      if (items.length === 0) {
+        return false;
+      }
+
+      const completedItems = items.filter(
+        (item) => item.state === "complete"
+      ).length;
+
+      const allComplete =
+        completedItems === items.length;
+
+      if (
+        filters.checklist === "complete" &&
+        !allComplete
+      ) {
+        return false;
+      }
+
+      if (
+        filters.checklist === "incomplete" &&
+        allComplete
+      ) {
+        return false;
+      }
     }
+
+    /* =====================================
+       CUSTOM FIELD FILTER
+    ===================================== */
+
+    if (
+      filters.customFields &&
+      filters.customFields !== "any"
+    ) {
+      const customFieldItems =
+        card.customFieldItems || [];
+
+      if (customFieldItems.length === 0) {
+        return false;
+      }
+
+      const hasValue = customFieldItems.some(
+        (item) =>
+          item.value &&
+          Object.values(item.value).some(
+            (value) =>
+              value !== null &&
+              value !== undefined &&
+              value !== ""
+          )
+      );
+
+      if (
+        filters.customFields === "complete" &&
+        !hasValue
+      ) {
+        return false;
+      }
+
+      if (
+        filters.customFields === "incomplete" &&
+        hasValue
+      ) {
+        return false;
+      }
+    }
+
+    /* =====================================
+       CARD MATCHES ALL SELECTED CONDITIONS
+    ===================================== */
 
     return true;
   });
