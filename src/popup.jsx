@@ -516,7 +516,9 @@ const [currentMemberId, setCurrentMemberId] = useState("");
     startToday.getMonth() + 1,
     1
   );
-
+console.log("All Trello cards:", cards);
+console.log("Selected filter:", filters);
+console.log("Current member ID:", currentMemberId);
   const result = cards.filter((card) => {
     // MEMBER FILTER
     if (filters.member === "me") {
@@ -640,7 +642,8 @@ const [currentMemberId, setCurrentMemberId] = useState("");
     return true;
   });
 
-  setFilteredCards(result);
+  console.log("Matching cards:", result);
+setFilteredCards(result);
 }
 
   function renderSelect(field, label) {
