@@ -59,60 +59,37 @@ export async function getBoardInfo() {
    LOAD REAL BOARD CARDS
 ========================================= */
 
+
 export async function getTrelloCards() {
   const t = initializeTrello();
 
   if (!t) return [];
 
   try {
-    const cards = await t.cards(
-      "id",
-      "name",
-      "desc",
-      "idList",
-      "idMembers",
-      "labels",
-      "due",
-      "dueComplete",
-      "closed",
-      "url",
-      "attachments",
-      "badges",
-      "checklists",
-      "customFieldItems"
-    );
+    // Load cards visible to this Power-Up
+    const cards = await t.cards("all");
 
-    return cards.map((card) => ({
+    console.log("Trello raw cards:", cards);
+    console.log("Trello card count:", cards?.length);
+
+    return (cards || []).map((card) => ({
       id: card.id,
-
       title: card.name || "",
-
       description: card.desc || "",
-
       listId: card.idList || "",
-
       members: card.idMembers || [],
-
       labels: (card.labels || []).map((label) => ({
         id: label.id,
         name: label.name,
         color: label.color,
       })),
-
       due: card.due || null,
-
       dueComplete: Boolean(card.dueComplete),
-
       closed: Boolean(card.closed),
-
       url: card.url || "",
-
       attachments: card.attachments || [],
-
       badges: card.badges || {},
-
       checklists: card.checklists || [],
-
       customFieldItems: card.customFieldItems || [],
     }));
   } catch (error) {
@@ -120,6 +97,7 @@ export async function getTrelloCards() {
     return [];
   }
 }
+
 
 /* =========================================
    LOAD BOARD LISTS
