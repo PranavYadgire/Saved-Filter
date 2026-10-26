@@ -821,7 +821,7 @@ if (!filtersLoaded || !cardsLoaded) {    return (
             className="filtered-card"
             onClick={() => openTrelloCard(card.id)}
           >
-            {card.name}
+            {card.title}
           </button>
         ))
       )}
