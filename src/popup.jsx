@@ -235,43 +235,35 @@ const [currentMemberId, setCurrentMemberId] = useState("");
     }
   }
 
-  async function loadCards() {
-    try {
-      const t = window.TrelloPowerUp.iframe();
+  
+async function loadCards() {
+  try {
+    const [trelloCards, member] = await Promise.all([
+      getTrelloCards(),
+      getCurrentMember(),
+    ]);
 
-      const [trelloCards, member] = await Promise.all([
-        t.cards(
-          "id",
-          "name",
-          "desc",
-          "idMembers",
-          "labels",
-          "due",
-          "dueComplete",
-          "closed",
-          "url",
-          "attachments"
-        ),
-        t.member("id"),
-      ]);
+    if (cancelled) return;
 
-      if (cancelled) return;
+    console.log("Loaded Trello cards:", trelloCards);
+    console.log("Loaded current member:", member);
 
-      setCards(trelloCards || []);
-      setCurrentMemberId(member?.id || "");
-    } catch (error) {
-      console.error("Unable to load Trello cards:", error);
+    setCards(trelloCards || []);
+    setCurrentMemberId(member?.id || "");
+  } catch (error) {
+    console.error("Unable to load Trello cards:", error);
 
-      if (!cancelled) {
-        setCards([]);
-        setCurrentMemberId("");
-      }
-    } finally {
-      if (!cancelled) {
-        setCardsLoaded(true);
-      }
+    if (!cancelled) {
+      setCards([]);
+      setCurrentMemberId("");
+    }
+  } finally {
+    if (!cancelled) {
+      setCardsLoaded(true);
     }
   }
+}
+
 
   loadSavedFilters();
   loadCards();
