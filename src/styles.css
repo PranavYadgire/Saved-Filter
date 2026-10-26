@@ -500,3 +500,42 @@ button {
     padding: 15px;
   }
 }
+/* Matching cards inside Active Filter */
+.filtered-cards {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #dfe1e6;
+}
+
+.filtered-cards h3 {
+  margin: 0 0 10px;
+  color: #172b4d;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.filtered-cards p {
+  margin: 8px 0;
+  color: #626f86;
+  font-size: 12px;
+}
+
+/* Individual matching card */
+.filtered-card {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid #dfe1e6;
+  border-radius: 6px;
+  background: #fff;
+  color: #172b4d;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.filtered-card:hover {
+  border-color: #b3bac5;
+  background: #f1f2f4;
+}

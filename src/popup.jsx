@@ -1,4 +1,10 @@
 import React, { useEffect, useState } from "react";
+import {
+  getTrelloCards,
+  getCurrentMember,
+  filterTrelloCards,
+  openTrelloCard,
+} from "./trello";
 import "./styles.css";
 
 const DEFAULT_FILTERS = [
@@ -203,15 +209,6 @@ const [currentMemberId, setCurrentMemberId] = useState("");
 
   async function loadSavedFilters() {
     try {
-      if (
-        !window.TrelloPowerUp ||
-        typeof window.TrelloPowerUp.iframe !== "function"
-      ) {
-        throw new Error(
-          "Trello Power-Up client is not available."
-        );
-      }
-
       const t = window.TrelloPowerUp.iframe();
 
       const saved = await t.get(
@@ -250,17 +247,12 @@ const [currentMemberId, setCurrentMemberId] = useState("");
           "idMembers",
           "labels",
           "due",
+          "dueComplete",
           "closed",
           "url",
           "attachments"
         ),
-       t.member("id")
-  .then((member) => {
-    if (member && member.id) {
-      setCurrentMemberId(member.id);
-    }
-  })
-  .catch(console.error)
+        t.member("id"),
       ]);
 
       if (cancelled) return;
@@ -812,26 +804,45 @@ if (!filtersLoaded || !cardsLoaded) {    return (
         </button>
 
         {activeFilter && (
-          <section className="active-filter">
-            <div className="active-label">
-              <span className="active-dot" />
-              Active filter
-            </div>
+  <section className="active-filter">
+    <div className="active-label">
+      <span className="active-dot" />
+      Active filter
+    </div>
 
-            <strong>{activeFilter.name}</strong>
+    <strong>{activeFilter.name}</strong>
 
-            <p>
-              {description(activeFilter.filters)}
-            </p>
+    <p>{description(activeFilter.filters)}</p>
 
-            <button
-              className="clear-button"
-              onClick={() => setActiveFilter(null)}
-            >
-              Clear filter
-            </button>
-          </section>
-        )}
+    <div className="filtered-cards">
+      <h3>Matching Cards ({filteredCards.length})</h3>
+
+      {filteredCards.length === 0 ? (
+        <p>No matching cards found.</p>
+      ) : (
+        filteredCards.map((card) => (
+          <button
+            key={card.id}
+            className="filtered-card"
+            onClick={() => openTrelloCard(card.id)}
+          >
+            {card.name}
+          </button>
+        ))
+      )}
+    </div>
+
+    <button
+      className="clear-button"
+      onClick={() => {
+        setActiveFilter(null);
+        setFilteredCards([]);
+      }}
+    >
+      Clear filter
+    </button>
+  </section>
+)}
       </main>
 
       {modal && (
