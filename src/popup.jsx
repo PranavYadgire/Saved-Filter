@@ -191,7 +191,6 @@ const [currentMemberId, setCurrentMemberId] = useState("");
   const [cards, setCards] = useState([]);
   const [cardsLoaded, setCardsLoaded] = useState(false);
   const [filteredCards, setFilteredCards] = useState([]);
-const [sortBy, setSortBy] = useState("default");
   const [modal, setModal] = useState(null);
   const [editingFilter, setEditingFilter] = useState(null);
   const [menuFilter, setMenuFilter] = useState(null);
@@ -698,36 +697,7 @@ if (!filtersLoaded || !cardsLoaded) {    return (
 
     <p>{description(activeFilter.filters)}</p>
 
-    <div className="filtered-cards">
-      
-<div className="sort-controls">
-  <label htmlFor="sort-cards">Sort by:</label>
-  <select
-    id="sort-cards"
-    value={sortBy}
-    onChange={(event) => setSortBy(event.target.value)}
-  >
-    <option value="default">Default order</option>
-    <option value="dueDate">Due date</option>
-    <option value="priority">Priority</option>
-  </select>
-</div>
-
-<h3>Matching Cards ({sortedCards.length})</h3>
-      {sortedCards.length === 0 ? (
-        <p>No matching cards found.</p>
-      ) : (
-        sortedCards.map((card) => (
-          <button
-            key={card.id}
-            className="filtered-card"
-            onClick={() => openTrelloCard(card.id)}
-          >
-            {card.title}
-          </button>
-        ))
-      )}
-    </div>
+   
 
     <button
       className="clear-button"
