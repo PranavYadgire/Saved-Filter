@@ -71,6 +71,11 @@ export async function getTrelloCards() {
 
     console.log("Trello raw cards:", cards);
     console.log("Trello card count:", cards?.length);
+    console.log(
+  "First Trello card member data:",
+  cards?.[0]?.idMembers,
+  cards?.[0]?.members
+);
 
     return (cards || []).map((card) => ({
       id: card.id,
