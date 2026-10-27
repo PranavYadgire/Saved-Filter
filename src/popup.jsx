@@ -479,25 +479,28 @@ async function loadCards() {
 
     closeModal();
   }
-
 function selectFilter(savedView) {
-  const filters = {
-    ...EMPTY_FILTER,
-    ...(savedView.filters || {}),
-  };
+  try {
+    const filters = {
+      ...EMPTY_FILTER,
+      ...(savedView.filters || {}),
+    };
 
-  setActiveFilter(savedView);
+    const result = filterTrelloCards(cards || [], {
+      ...filters,
+      currentMemberId,
+    });
 
-  const result = filterTrelloCards(cards, {
-    ...filters,
-    currentMemberId,
-  });
+    setFilteredCards(Array.isArray(result) ? result : []);
+    setActiveFilter(savedView);
 
-  console.log("Selected saved filter:", savedView.name);
-  console.log("Filter settings:", filters);
-  console.log("Matching cards:", result);
-
-  setFilteredCards(result);
+    console.log("Selected filter:", savedView.name);
+    console.log("Matching cards:", result);
+  } catch (error) {
+    console.error("Filter selection failed:", error);
+    setFilteredCards([]);
+    setActiveFilter(savedView);
+  }
 }
 
 const sortedCards = [...filteredCards].sort((a, b) => {
