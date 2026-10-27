@@ -191,7 +191,6 @@ const [currentMemberId, setCurrentMemberId] = useState("");
   const [cards, setCards] = useState([]);
   const [cardsLoaded, setCardsLoaded] = useState(false);
   const [filteredCards, setFilteredCards] = useState([]);
-
   const [modal, setModal] = useState(null);
   const [editingFilter, setEditingFilter] = useState(null);
   const [menuFilter, setMenuFilter] = useState(null);
@@ -235,43 +234,35 @@ const [currentMemberId, setCurrentMemberId] = useState("");
     }
   }
 
-  async function loadCards() {
-    try {
-      const t = window.TrelloPowerUp.iframe();
+  
+async function loadCards() {
+  try {
+    const [trelloCards, member] = await Promise.all([
+      getTrelloCards(),
+      getCurrentMember(),
+    ]);
 
-      const [trelloCards, member] = await Promise.all([
-        t.cards(
-          "id",
-          "name",
-          "desc",
-          "idMembers",
-          "labels",
-          "due",
-          "dueComplete",
-          "closed",
-          "url",
-          "attachments"
-        ),
-        t.member("id"),
-      ]);
+    if (cancelled) return;
 
-      if (cancelled) return;
+    console.log("Loaded Trello cards:", trelloCards);
+    console.log("Loaded current member:", member);
 
-      setCards(trelloCards || []);
-      setCurrentMemberId(member?.id || "");
-    } catch (error) {
-      console.error("Unable to load Trello cards:", error);
+    setCards(trelloCards || []);
+    setCurrentMemberId(member?.id || "");
+  } catch (error) {
+    console.error("Unable to load Trello cards:", error);
 
-      if (!cancelled) {
-        setCards([]);
-        setCurrentMemberId("");
-      }
-    } finally {
-      if (!cancelled) {
-        setCardsLoaded(true);
-      }
+    if (!cancelled) {
+      setCards([]);
+      setCurrentMemberId("");
+    }
+  } finally {
+    if (!cancelled) {
+      setCardsLoaded(true);
     }
   }
+}
+
 
   loadSavedFilters();
   loadCards();
@@ -489,7 +480,7 @@ const [currentMemberId, setCurrentMemberId] = useState("");
     closeModal();
   }
 
- function selectFilter(savedView) {
+function selectFilter(savedView) {
   const filters = {
     ...EMPTY_FILTER,
     ...(savedView.filters || {}),
@@ -497,153 +488,43 @@ const [currentMemberId, setCurrentMemberId] = useState("");
 
   setActiveFilter(savedView);
 
-  const now = new Date();
-
-  const startToday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate()
-  );
-
-  const endToday = new Date(startToday);
-  endToday.setDate(endToday.getDate() + 1);
-
-  const weekEnd = new Date(startToday);
-  weekEnd.setDate(weekEnd.getDate() + 7);
-
-  const monthEnd = new Date(
-    startToday.getFullYear(),
-    startToday.getMonth() + 1,
-    1
-  );
-console.log("All Trello cards:", cards);
-console.log("Selected filter:", filters);
-console.log("Current member ID:", currentMemberId);
-  const result = cards.filter((card) => {
-    // MEMBER FILTER
-    if (filters.member === "me") {
-      if (
-        !currentMemberId ||
-        !(card.idMembers || []).includes(currentMemberId)
-      ) {
-        return false;
-      }
-    }
-
-    // CARD STATUS FILTER
-    if (filters.cardType === "open" && card.closed) {
-      return false;
-    }
-
-    if (filters.cardType === "closed" && !card.closed) {
-      return false;
-    }
-
-    // LABEL FILTER
-    const cardLabels = (card.labels || []).map((label) =>
-      (label.name || "").toLowerCase()
-    );
-
-    if (filters.labels?.length > 0) {
-      const selectedLabels = filters.labels.map((label) =>
-        label.toLowerCase()
-      );
-
-      const hasAllLabels = selectedLabels.every((label) =>
-        cardLabels.includes(label)
-      );
-
-      if (!hasAllLabels) {
-        return false;
-      }
-    }
-
-    // KEYWORD FILTER
-    const keyword = (filters.keyword || "")
-      .trim()
-      .toLowerCase();
-
-    if (keyword) {
-      const cardText = `${card.name || ""} ${card.desc || ""}`
-        .toLowerCase();
-
-      if (!cardText.includes(keyword)) {
-        return false;
-      }
-    }
-
-    // DUE DATE FILTER
-    const dueDate = card.due
-      ? new Date(card.due)
-      : null;
-
-    if (filters.dueDate === "none" && dueDate) {
-      return false;
-    }
-
-    if (
-      filters.dueDate === "today" &&
-      (!dueDate ||
-        dueDate < startToday ||
-        dueDate >= endToday)
-    ) {
-      return false;
-    }
-
-    if (
-      filters.dueDate === "week" &&
-      (!dueDate ||
-        dueDate < startToday ||
-        dueDate >= weekEnd)
-    ) {
-      return false;
-    }
-
-    if (
-      filters.dueDate === "month" &&
-      (!dueDate ||
-        dueDate < startToday ||
-        dueDate >= monthEnd)
-    ) {
-      return false;
-    }
-
-    if (
-      filters.dueDate === "overdue" &&
-      (!dueDate ||
-        dueDate >= startToday ||
-        card.closed)
-    ) {
-      return false;
-    }
-
-    // ATTACHMENT FILTER
-    if (
-      filters.attachment !== "any" &&
-      Array.isArray(card.attachments)
-    ) {
-      const hasAttachment = card.attachments.length > 0;
-
-      if (
-        filters.attachment === "yes" &&
-        !hasAttachment
-      ) {
-        return false;
-      }
-
-      if (
-        filters.attachment === "no" &&
-        hasAttachment
-      ) {
-        return false;
-      }
-    }
-
-    return true;
+  const result = filterTrelloCards(cards, {
+    ...filters,
+    currentMemberId,
   });
+
+  console.log("Selected saved filter:", savedView.name);
+  console.log("Filter settings:", filters);
+  console.log("Matching cards:", result);
 
   setFilteredCards(result);
 }
+
+const sortedCards = [...filteredCards].sort((a, b) => {
+  if (sortBy === "dueDate") {
+    const dateA = a.due ? new Date(a.due).getTime() : Infinity;
+    const dateB = b.due ? new Date(b.due).getTime() : Infinity;
+    return dateA - dateB;
+  }
+
+  if (sortBy === "priority") {
+    const getPriority = (card) => {
+      const names = (card.labels || []).map((label) =>
+        (label.name || "").toLowerCase()
+      );
+
+      if (names.some((name) => name.includes("high"))) return 1;
+      if (names.some((name) => name.includes("medium"))) return 2;
+      if (names.some((name) => name.includes("low"))) return 3;
+      return 4;
+    };
+
+    return getPriority(a) - getPriority(b);
+  }
+
+  return 0;
+});
+
 
   function renderSelect(field, label) {
     return (
@@ -816,23 +697,7 @@ if (!filtersLoaded || !cardsLoaded) {    return (
 
     <p>{description(activeFilter.filters)}</p>
 
-    <div className="filtered-cards">
-      <h3>Matching Cards ({filteredCards.length})</h3>
-
-      {filteredCards.length === 0 ? (
-        <p>No matching cards found.</p>
-      ) : (
-        filteredCards.map((card) => (
-          <button
-            key={card.id}
-            className="filtered-card"
-            onClick={() => openTrelloCard(card.id)}
-          >
-            {card.name}
-          </button>
-        ))
-      )}
-    </div>
+   
 
     <button
       className="clear-button"
