@@ -188,7 +188,7 @@ function Popup() {
   const [savedFilters, setSavedFilters] = useState([]);
   const [filtersLoaded, setFiltersLoaded] = useState(false);
   const [sortBy, setSortBy] = useState("default");
-const [currentMemberId, setCurrentMemberId] = useState("");
+  const [currentMemberId, setCurrentMemberId] = useState("");
   const [cards, setCards] = useState([]);
   const [cardsLoaded, setCardsLoaded] = useState(false);
   const [filteredCards, setFilteredCards] = useState([]);
@@ -200,80 +200,85 @@ const [currentMemberId, setCurrentMemberId] = useState("");
   const [form, setForm] = useState({
     name: "",
     ...EMPTY_FILTER,
+    labels: [],
   });
   const [error, setError] = useState("");
 
-  // Load saved filters from Trello board shared storage.
+  // Load saved filters and Trello cards.
   useEffect(() => {
-  let cancelled = false;
+    let cancelled = false;
 
-  async function loadSavedFilters() {
-    try {
-      const t = window.TrelloPowerUp.iframe();
+    async function loadSavedFilters() {
+      try {
+        if (
+          !window.TrelloPowerUp ||
+          typeof window.TrelloPowerUp.iframe !== "function"
+        ) {
+          throw new Error("Trello Power-Up client is unavailable.");
+        }
 
-      const saved = await t.get(
-        "board",
-        "shared",
-        STORAGE_KEY
-      );
-
-      if (!cancelled) {
-        setSavedFilters(
-          Array.isArray(saved) ? saved : DEFAULT_FILTERS
+        const t = window.TrelloPowerUp.iframe();
+        const saved = await t.get(
+          "board",
+          "shared",
+          STORAGE_KEY
         );
-      }
-    } catch (error) {
-      console.error("Unable to load saved filters:", error);
 
-      if (!cancelled) {
-        setSavedFilters(DEFAULT_FILTERS);
-      }
-    } finally {
-      if (!cancelled) {
-        setFiltersLoaded(true);
+        if (!cancelled) {
+          setSavedFilters(
+            Array.isArray(saved) ? saved : DEFAULT_FILTERS
+          );
+        }
+      } catch (err) {
+        console.error("Unable to load saved filters:", err);
+
+        if (!cancelled) {
+          setSavedFilters(DEFAULT_FILTERS);
+        }
+      } finally {
+        if (!cancelled) {
+          setFiltersLoaded(true);
+        }
       }
     }
-  }
 
-  
-async function loadCards() {
-  try {
-    const [trelloCards, member] = await Promise.all([
-      getTrelloCards(),
-      getCurrentMember(),
-    ]);
+    async function loadCards() {
+      try {
+        const [trelloCards, member] = await Promise.all([
+          getTrelloCards(),
+          getCurrentMember(),
+        ]);
 
-    if (cancelled) return;
+        if (cancelled) return;
 
-    console.log("Loaded Trello cards:", trelloCards);
-    console.log("Loaded current member:", member);
+        setCards(Array.isArray(trelloCards) ? trelloCards : []);
+        setCurrentMemberId(member?.id || "");
 
-    setCards(trelloCards || []);
-    setCurrentMemberId(member?.id || "");
-  } catch (error) {
-    console.error("Unable to load Trello cards:", error);
+        console.log("Loaded Trello cards:", trelloCards);
+        console.log("Loaded current member:", member);
+      } catch (err) {
+        console.error("Unable to load Trello cards:", err);
 
-    if (!cancelled) {
-      setCards([]);
-      setCurrentMemberId("");
+        if (!cancelled) {
+          setCards([]);
+          setCurrentMemberId("");
+        }
+      } finally {
+        if (!cancelled) {
+          setCardsLoaded(true);
+        }
+      }
     }
-  } finally {
-    if (!cancelled) {
-      setCardsLoaded(true);
-    }
-  }
-}
 
+    loadSavedFilters();
+    loadCards();
 
-  loadSavedFilters();
-  loadCards();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  return () => {
-    cancelled = true;
-  };
-}, []);
-
-  // Save filters to Trello only after initial loading completes.
+  // Save filters after initial loading.
   useEffect(() => {
     if (!filtersLoaded) return;
 
@@ -281,15 +286,6 @@ async function loadCards() {
 
     async function saveSavedFilters() {
       try {
-        if (
-          !window.TrelloPowerUp ||
-          typeof window.TrelloPowerUp.iframe !== "function"
-        ) {
-          throw new Error(
-            "Trello Power-Up client is not available."
-          );
-        }
-
         const t = window.TrelloPowerUp.iframe();
 
         await t.set(
@@ -298,9 +294,9 @@ async function loadCards() {
           STORAGE_KEY,
           savedFilters
         );
-      } catch (error) {
+      } catch (err) {
         if (!cancelled) {
-          console.error("Unable to save filters:", error);
+          console.error("Unable to save filters:", err);
         }
       }
     }
@@ -312,7 +308,7 @@ async function loadCards() {
     };
   }, [savedFilters, filtersLoaded]);
 
-  // Close the options menu when clicking outside it.
+  // Close the options menu when clicking elsewhere.
   useEffect(() => {
     function closeMenu() {
       setMenuFilter(null);
@@ -327,13 +323,11 @@ async function loadCards() {
 
   function openCreate() {
     setEditingFilter(null);
-
     setForm({
       name: "",
       ...EMPTY_FILTER,
       labels: [],
     });
-
     setError("");
     setMenuFilter(null);
     setModal("create");
@@ -341,14 +335,12 @@ async function loadCards() {
 
   function openEdit(filter) {
     setEditingFilter(filter);
-
     setForm({
       name: filter.name,
       ...EMPTY_FILTER,
-      ...filter.filters,
+      ...(filter.filters || {}),
       labels: [...(filter.filters?.labels || [])],
     });
-
     setError("");
     setMenuFilter(null);
     setModal("edit");
@@ -356,14 +348,12 @@ async function loadCards() {
 
   function openRename(filter) {
     setEditingFilter(filter);
-
     setForm({
       name: filter.name,
       ...EMPTY_FILTER,
-      ...filter.filters,
+      ...(filter.filters || {}),
       labels: [...(filter.filters?.labels || [])],
     });
-
     setError("");
     setMenuFilter(null);
     setModal("rename");
@@ -476,59 +466,81 @@ async function loadCards() {
 
     if (activeFilter?.id === editingFilter.id) {
       setActiveFilter(null);
+      setFilteredCards([]);
     }
 
     closeModal();
   }
-function selectFilter(savedView) {
-  try {
-    const filters = {
-      ...EMPTY_FILTER,
-      ...(savedView.filters || {}),
-    };
 
-    const result = filterTrelloCards(cards || [], {
-      ...filters,
-      currentMemberId,
+  // Apply selected saved filter.
+  function selectFilter(savedView) {
+    try {
+      const filters = {
+        ...EMPTY_FILTER,
+        ...(savedView.filters || {}),
+      };
+
+      const result = filterTrelloCards(cards || [], {
+        ...filters,
+        currentMemberId,
+      });
+
+      setFilteredCards(Array.isArray(result) ? result : []);
+      setSortBy("default");
+      setActiveFilter(savedView);
+      setMenuFilter(null);
+
+      console.log("Selected filter:", savedView.name);
+      console.log("Filter settings:", filters);
+      console.log("Matching cards:", result);
+    } catch (err) {
+      console.error("Filter selection failed:", err);
+      setError("Could not apply this filter. Check the console.");
+      setFilteredCards([]);
+      setActiveFilter(savedView);
+    }
+  }
+
+  // Sorting always uses a safe default.
+  const safeSortBy = sortBy || "default";
+
+  const sortedCards = [...(Array.isArray(filteredCards) ? filteredCards : [])]
+    .sort((a, b) => {
+      if (safeSortBy === "dueDate") {
+        const dateA = a?.due
+          ? new Date(a.due).getTime()
+          : Infinity;
+        const dateB = b?.due
+          ? new Date(b.due).getTime()
+          : Infinity;
+
+        return dateA - dateB;
+      }
+
+      if (safeSortBy === "priority") {
+        const getPriority = (card) => {
+          const names = (card?.labels || []).map((label) =>
+            String(label?.name || "").toLowerCase()
+          );
+
+          if (names.some((name) => name.includes("high"))) return 1;
+          if (names.some((name) => name.includes("medium"))) return 2;
+          if (names.some((name) => name.includes("low"))) return 3;
+
+          return 4;
+        };
+
+        return getPriority(a) - getPriority(b);
+      }
+
+      if (safeSortBy === "name") {
+        return String(a?.name || a?.title || "").localeCompare(
+          String(b?.name || b?.title || "")
+        );
+      }
+
+      return 0;
     });
-
-    setFilteredCards(Array.isArray(result) ? result : []);
-    setActiveFilter(savedView);
-
-    console.log("Selected filter:", savedView.name);
-    console.log("Matching cards:", result);
-  } catch (error) {
-    console.error("Filter selection failed:", error);
-    setFilteredCards([]);
-    setActiveFilter(savedView);
-  }
-}
-
-const sortedCards = [...filteredCards].sort((a, b) => {
-  if (sortBy === "dueDate") {
-    const dateA = a.due ? new Date(a.due).getTime() : Infinity;
-    const dateB = b.due ? new Date(b.due).getTime() : Infinity;
-    return dateA - dateB;
-  }
-
-  if (sortBy === "priority") {
-    const getPriority = (card) => {
-      const names = (card.labels || []).map((label) =>
-        (label.name || "").toLowerCase()
-      );
-
-      if (names.some((name) => name.includes("high"))) return 1;
-      if (names.some((name) => name.includes("medium"))) return 2;
-      if (names.some((name) => name.includes("low"))) return 3;
-      return 4;
-    };
-
-    return getPriority(a) - getPriority(b);
-  }
-
-  return 0;
-});
-
 
   function renderSelect(field, label) {
     return (
@@ -537,9 +549,7 @@ const sortedCards = [...filteredCards].sort((a, b) => {
 
         <select
           value={form[field] ?? "any"}
-          onChange={(event) =>
-            update(field, event.target.value)
-          }
+          onChange={(event) => update(field, event.target.value)}
         >
           {OPTIONS[field].map(([value, text]) => (
             <option value={value} key={value}>
@@ -552,26 +562,21 @@ const sortedCards = [...filteredCards].sort((a, b) => {
   }
 
   const visibleFilters = savedFilters.filter((filter) =>
-    filter.name
+    String(filter.name || "")
       .toLowerCase()
       .includes(search.toLowerCase())
   );
 
-  // Show loading screen while Trello storage is loading.
-if (!filtersLoaded || !cardsLoaded) {    return (
+  if (!filtersLoaded || !cardsLoaded) {
+    return (
       <div className="app">
-        <div className="empty">
-          Loading saved filters...
-        </div>
+        <div className="empty">Loading saved filters...</div>
       </div>
     );
   }
 
   return (
-    <div
-      className="app"
-      onClick={() => setMenuFilter(null)}
-    >
+    <div className="app" onClick={() => setMenuFilter(null)}>
       <header className="header">
         <div className="header-title">
           <span className="header-icon">◈</span>
@@ -582,9 +587,7 @@ if (!filtersLoaded || !cardsLoaded) {    return (
       <main className="saved-list">
         <div className="list-header">
           <h3>Saved Filters</h3>
-          <span className="filter-count">
-            {savedFilters.length}
-          </span>
+          <span className="filter-count">{savedFilters.length}</span>
         </div>
 
         <input
@@ -592,27 +595,22 @@ if (!filtersLoaded || !cardsLoaded) {    return (
           type="search"
           placeholder="Search saved filters..."
           value={search}
-          onChange={(event) =>
-            setSearch(event.target.value)
-          }
+          onChange={(event) => setSearch(event.target.value)}
         />
 
         {visibleFilters.length === 0 ? (
-          <div className="empty">
-            No saved filters found.
-          </div>
+          <div className="empty">No saved filters found.</div>
         ) : (
           visibleFilters.map((filter) => (
             <div
               className={
                 "saved-item" +
-                (activeFilter?.id === filter.id
-                  ? " active"
-                  : "")
+                (activeFilter?.id === filter.id ? " active" : "")
               }
               key={filter.id}
             >
               <button
+                type="button"
                 className="saved-main"
                 onClick={() => selectFilter(filter)}
               >
@@ -622,18 +620,13 @@ if (!filtersLoaded || !cardsLoaded) {    return (
 
                 <span className="saved-text">
                   <strong>{filter.name}</strong>
-
-                  <small>
-                    {description(filter.filters)}
-                  </small>
+                  <small>{description(filter.filters)}</small>
                 </span>
               </button>
 
               <div
                 className="actions"
-                onClick={(event) =>
-                  event.stopPropagation()
-                }
+                onClick={(event) => event.stopPropagation()}
               >
                 <button
                   type="button"
@@ -642,9 +635,7 @@ if (!filtersLoaded || !cardsLoaded) {    return (
                   title="More options"
                   onClick={() =>
                     setMenuFilter(
-                      menuFilter === filter.id
-                        ? null
-                        : filter.id
+                      menuFilter === filter.id ? null : filter.id
                     )
                   }
                 >
@@ -654,18 +645,21 @@ if (!filtersLoaded || !cardsLoaded) {    return (
                 {menuFilter === filter.id && (
                   <div className="item-menu">
                     <button
+                      type="button"
                       onClick={() => openEdit(filter)}
                     >
                       <span>✎</span> Edit
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => openRename(filter)}
                     >
                       <span>▧</span> Rename
                     </button>
 
                     <button
+                      type="button"
                       className="delete-menu-item"
                       onClick={() => {
                         setEditingFilter(filter);
@@ -683,6 +677,7 @@ if (!filtersLoaded || !cardsLoaded) {    return (
         )}
 
         <button
+          type="button"
           className="create-button"
           onClick={openCreate}
         >
@@ -691,38 +686,138 @@ if (!filtersLoaded || !cardsLoaded) {    return (
         </button>
 
         {activeFilter && (
-  <section className="active-filter">
-    <div className="active-label">
-      <span className="active-dot" />
-      Active filter
-    </div>
+          <section className="active-filter">
+            <div className="active-label">
+              <span className="active-dot" />
+              Active filter
+            </div>
 
-    <strong>{activeFilter.name}</strong>
+            <strong>{activeFilter.name}</strong>
+            <p>{description(activeFilter.filters)}</p>
 
-    <p>{description(activeFilter.filters)}</p>
+            <div
+              className="filtered-results"
+              style={{
+                marginTop: 14,
+                paddingTop: 12,
+                borderTop: "1px solid #e5e7eb",
+              }}
+            >
+              <div
+                className="filtered-results-header"
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  marginBottom: 10,
+                }}
+              >
+                <strong>Matching cards ({sortedCards.length})</strong>
 
-   
+                <label className="sort-control">
+                  Sort:{" "}
+                  <select
+                    value={sortBy}
+                    onChange={(event) => setSortBy(event.target.value)}
+                  >
+                    <option value="default">Default</option>
+                    <option value="name">Name</option>
+                    <option value="dueDate">Due date</option>
+                    <option value="priority">Priority</option>
+                  </select>
+                </label>
+              </div>
 
-    <button
-      className="clear-button"
-      onClick={() => {
-        setActiveFilter(null);
-        setFilteredCards([]);
-      }}
-    >
-      Clear filter
-    </button>
-  </section>
-)}
+              {sortedCards.length === 0 ? (
+                <p className="no-matching-cards">
+                  No matching cards found for this filter.
+                </p>
+              ) : (
+                <div
+                  className="filtered-card-list"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                    marginTop: 10,
+                  }}
+                >
+                  {sortedCards.map((card, index) => (
+                    <button
+                      type="button"
+                      className="filtered-card"
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                        width: "100%",
+                        padding: "10px 12px",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 8,
+                        background: "#fff",
+                        color: "#172b4d",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        gap: 4,
+                      }}
+                      key={
+                        card.id ||
+                        card.shortLink ||
+                        card.name ||
+                        card.title ||
+                        index
+                      }
+                      onClick={() => {
+                        if (card.id) openTrelloCard(card.id);
+                      }}
+                      title="Open card in Trello"
+                    >
+                      <span className="filtered-card-title">
+                        {card.name || card.title || "Untitled card"}
+                      </span>
+
+                      {card.due && (
+                        <small>
+                          Due: {new Date(card.due).toLocaleDateString()}
+                        </small>
+                      )}
+
+                      {(card.labels || []).length > 0 && (
+                        <span className="filtered-card-labels">
+                          {card.labels
+                            .map((label) => label.name)
+                            .filter(Boolean)
+                            .join(", ")}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              className="clear-button"
+              onClick={() => {
+                setActiveFilter(null);
+                setFilteredCards([]);
+                setSortBy("default");
+              }}
+            >
+              Clear filter
+            </button>
+          </section>
+        )}
       </main>
 
       {modal && (
         <div
           className="modal-overlay"
           onMouseDown={(event) => {
-            if (
-              event.target === event.currentTarget
-            ) {
+            if (event.target === event.currentTarget) {
               closeModal();
             }
           }}
@@ -730,20 +825,14 @@ if (!filtersLoaded || !cardsLoaded) {    return (
           <div className="modal">
             <div className="modal-header">
               <h2>
-                {modal === "create" &&
-                  "Create a Filter"}
-
-                {modal === "edit" &&
-                  "Edit Saved View"}
-
-                {modal === "rename" &&
-                  "Rename Saved View"}
-
-                {modal === "delete" &&
-                  "Delete Saved View?"}
+                {modal === "create" && "Create a Filter"}
+                {modal === "edit" && "Edit Saved View"}
+                {modal === "rename" && "Rename Saved View"}
+                {modal === "delete" && "Delete Saved View?"}
               </h2>
 
               <button
+                type="button"
                 className="icon-button"
                 onClick={closeModal}
               >
@@ -753,20 +842,15 @@ if (!filtersLoaded || !cardsLoaded) {    return (
 
             {modal === "delete" ? (
               <div className="delete-modal">
-                <div className="delete-icon">
-                  ⌫
-                </div>
+                <div className="delete-icon">⌫</div>
 
                 <p>
-                  Delete{" "}
-                  <strong>
-                    {editingFilter?.name}
-                  </strong>{" "}
-                  permanently?
+                  Delete <strong>{editingFilter?.name}</strong> permanently?
                 </p>
 
                 <div className="modal-actions">
                   <button
+                    type="button"
                     className="secondary-button"
                     onClick={closeModal}
                   >
@@ -774,6 +858,7 @@ if (!filtersLoaded || !cardsLoaded) {    return (
                   </button>
 
                   <button
+                    type="button"
                     className="danger-button"
                     onClick={deleteFilter}
                   >
@@ -790,9 +875,7 @@ if (!filtersLoaded || !cardsLoaded) {    return (
                 </p>
 
                 <label className="filter-field">
-                  <span className="field-label">
-                    View Name *
-                  </span>
+                  <span className="field-label">View Name *</span>
 
                   <input
                     autoFocus
@@ -808,20 +891,11 @@ if (!filtersLoaded || !cardsLoaded) {    return (
                   <div className="filter-settings">
                     <h3>Filter Settings</h3>
 
-                    {renderSelect(
-                      "member",
-                      "Members"
-                    )}
-
-                    {renderSelect(
-                      "dueDate",
-                      "Due date"
-                    )}
+                    {renderSelect("member", "Members")}
+                    {renderSelect("dueDate", "Due date")}
 
                     <div className="filter-field">
-                      <span className="field-label">
-                        Labels
-                      </span>
+                      <span className="field-label">Labels</span>
 
                       <div className="label-options">
                         {LABELS.map((label) => (
@@ -834,67 +908,40 @@ if (!filtersLoaded || !cardsLoaded) {    return (
                                 ? " selected"
                                 : "")
                             }
-                            onClick={() =>
-                              toggleLabel(label)
-                            }
+                            onClick={() => toggleLabel(label)}
                           >
                             {label}
-
-                            {form.labels.includes(label)
-                              ? " ✓"
-                              : ""}
+                            {form.labels.includes(label) ? " ✓" : ""}
                           </button>
                         ))}
                       </div>
                     </div>
 
-                    {renderSelect(
-                      "cardType",
-                      "Card type"
-                    )}
-
-                    {renderSelect(
-                      "checklist",
-                      "Checklist"
-                    )}
-
-                    {renderSelect(
-                      "attachment",
-                      "Attachment"
-                    )}
+                    {renderSelect("cardType", "Card type")}
+                    {renderSelect("checklist", "Checklist")}
+                    {renderSelect("attachment", "Attachment")}
 
                     <label className="filter-field">
-                      <span className="field-label">
-                        Keyword
-                      </span>
+                      <span className="field-label">Keyword</span>
 
                       <input
                         value={form.keyword}
                         placeholder="Enter keyword"
                         onChange={(event) =>
-                          update(
-                            "keyword",
-                            event.target.value
-                          )
+                          update("keyword", event.target.value)
                         }
                       />
                     </label>
 
-                    {renderSelect(
-                      "customFields",
-                      "Custom fields"
-                    )}
+                    {renderSelect("customFields", "Custom fields")}
                   </div>
                 )}
 
-                {error && (
-                  <div className="error">
-                    {error}
-                  </div>
-                )}
+                {error && <div className="error">{error}</div>}
 
                 <div className="modal-actions">
                   <button
+                    type="button"
                     className="secondary-button"
                     onClick={closeModal}
                   >
@@ -902,21 +949,15 @@ if (!filtersLoaded || !cardsLoaded) {    return (
                   </button>
 
                   <button
+                    type="button"
                     className="primary-button"
                     onClick={
-                      modal === "rename"
-                        ? renameFilter
-                        : saveFilter
+                      modal === "rename" ? renameFilter : saveFilter
                     }
                   >
-                    {modal === "create" &&
-                      "Save Filter"}
-
-                    {modal === "edit" &&
-                      "Update View"}
-
-                    {modal === "rename" &&
-                      "Rename"}
+                    {modal === "create" && "Save Filter"}
+                    {modal === "edit" && "Update View"}
+                    {modal === "rename" && "Rename"}
                   </button>
                 </div>
               </>
