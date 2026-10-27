@@ -191,7 +191,7 @@ const [currentMemberId, setCurrentMemberId] = useState("");
   const [cards, setCards] = useState([]);
   const [cardsLoaded, setCardsLoaded] = useState(false);
   const [filteredCards, setFilteredCards] = useState([]);
-
+const [sortBy, setSortBy] = useState("default");
   const [modal, setModal] = useState(null);
   const [editingFilter, setEditingFilter] = useState(null);
   const [menuFilter, setMenuFilter] = useState(null);
@@ -501,6 +501,31 @@ function selectFilter(savedView) {
   setFilteredCards(result);
 }
 
+const sortedCards = [...filteredCards].sort((a, b) => {
+  if (sortBy === "dueDate") {
+    const dateA = a.due ? new Date(a.due).getTime() : Infinity;
+    const dateB = b.due ? new Date(b.due).getTime() : Infinity;
+    return dateA - dateB;
+  }
+
+  if (sortBy === "priority") {
+    const getPriority = (card) => {
+      const names = (card.labels || []).map((label) =>
+        (label.name || "").toLowerCase()
+      );
+
+      if (names.some((name) => name.includes("high"))) return 1;
+      if (names.some((name) => name.includes("medium"))) return 2;
+      if (names.some((name) => name.includes("low"))) return 3;
+      return 4;
+    };
+
+    return getPriority(a) - getPriority(b);
+  }
+
+  return 0;
+});
+
 
   function renderSelect(field, label) {
     return (
@@ -674,12 +699,25 @@ if (!filtersLoaded || !cardsLoaded) {    return (
     <p>{description(activeFilter.filters)}</p>
 
     <div className="filtered-cards">
-      <h3>Matching Cards ({filteredCards.length})</h3>
+      
+<div className="sort-controls">
+  <label htmlFor="sort-cards">Sort by:</label>
+  <select
+    id="sort-cards"
+    value={sortBy}
+    onChange={(event) => setSortBy(event.target.value)}
+  >
+    <option value="default">Default order</option>
+    <option value="dueDate">Due date</option>
+    <option value="priority">Priority</option>
+  </select>
+</div>
 
-      {filteredCards.length === 0 ? (
+<h3>Matching Cards ({sortedCards.length})</h3>
+      {sortedCards.length === 0 ? (
         <p>No matching cards found.</p>
       ) : (
-        filteredCards.map((card) => (
+        sortedCards.map((card) => (
           <button
             key={card.id}
             className="filtered-card"
