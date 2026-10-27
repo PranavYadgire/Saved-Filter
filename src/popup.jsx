@@ -187,6 +187,7 @@ function description(filters = EMPTY_FILTER) {
 function Popup() {
   const [savedFilters, setSavedFilters] = useState([]);
   const [filtersLoaded, setFiltersLoaded] = useState(false);
+  const [sortBy, setSortBy] = useState("default");
 const [currentMemberId, setCurrentMemberId] = useState("");
   const [cards, setCards] = useState([]);
   const [cardsLoaded, setCardsLoaded] = useState(false);
