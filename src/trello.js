@@ -60,38 +60,35 @@ export async function getBoardInfo() {
 ========================================= */
 
 
+
 export async function getTrelloCards() {
   const t = initializeTrello();
 
   if (!t) return [];
 
   try {
-    // Load cards visible to this Power-Up
-    const cards = await t.cardconsole.log("FIRST RAW CARD:", cards?.[0]);
-console.log("ALL CARD MEMBER FIELDS:", (cards || []).map(card => ({
-  name: card.name,
-  id: card.id,
-  idMembers: card.idMembers,
-  members: card.members
-})));
+    const cards = await t.cards("all");
+
+    // Safely inspect the data returned by Trello.
     console.log("Trello raw cards:", cards);
     console.log("Trello card count:", cards?.length);
-    console.log(
-  "First Trello card member data:",
-  cards?.[0]?.idMembers,
-  cards?.[0]?.members
-);
 
     return (cards || []).map((card) => ({
-      id: card.id,
+      id: card.id || "",
       title: card.name || "",
       description: card.desc || "",
       listId: card.idList || "",
-      members: card.idMembers || [],
+      members: Array.isArray(card.idMembers)
+        ? card.idMembers
+        : Array.isArray(card.members)
+          ? card.members.map((member) =>
+              typeof member === "string" ? member : member.id
+            ).filter(Boolean)
+          : [],
       labels: (card.labels || []).map((label) => ({
-        id: label.id,
-        name: label.name,
-        color: label.color,
+        id: label.id || "",
+        name: label.name || "",
+        color: label.color || "",
       })),
       due: card.due || null,
       dueComplete: Boolean(card.dueComplete),
@@ -107,6 +104,7 @@ console.log("ALL CARD MEMBER FIELDS:", (cards || []).map(card => ({
     return [];
   }
 }
+
 
 
 /* =========================================
