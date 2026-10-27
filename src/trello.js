@@ -73,6 +73,13 @@ export async function getTrelloCards() {
     console.log("Trello raw cards:", cards);
     console.log("Trello card count:", cards?.length);
 
+console.log(
+  "Card labels:",
+  (cards || []).map((card) => ({
+    title: card.name,
+    labels: card.labels
+  }))
+);
     return (cards || []).map((card) => ({
       id: card.id || "",
       title: card.name || "",
@@ -86,10 +93,10 @@ export async function getTrelloCards() {
             ).filter(Boolean)
           : [],
       labels: (card.labels || []).map((label) => ({
-        id: label.id || "",
-        name: label.name || "",
-        color: label.color || "",
-      })),
+  id: label.id || "",
+  name: (label.name || "").trim(),
+  color: label.color || "",
+})),
       due: card.due || null,
       dueComplete: Boolean(card.dueComplete),
       closed: Boolean(card.closed),
