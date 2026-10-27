@@ -67,8 +67,13 @@ export async function getTrelloCards() {
 
   try {
     // Load cards visible to this Power-Up
-    const cards = await t.cards("all");
-
+    const cards = await t.cardconsole.log("FIRST RAW CARD:", cards?.[0]);
+console.log("ALL CARD MEMBER FIELDS:", (cards || []).map(card => ({
+  name: card.name,
+  id: card.id,
+  idMembers: card.idMembers,
+  members: card.members
+})));
     console.log("Trello raw cards:", cards);
     console.log("Trello card count:", cards?.length);
     console.log(
