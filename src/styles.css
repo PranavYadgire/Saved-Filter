@@ -1409,3 +1409,32 @@ select,
 button {
   max-width: 100%;
 }
+
+/* Remove bottom horizontal scrollbar */
+html,
+body,
+#root,
+.app {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden !important;
+}
+
+.saved-list,
+.active-filter,
+.filtered-results,
+.filtered-card-list,
+.filtered-card {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.filtered-card {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.filtered-card-list {
+  grid-template-columns: minmax(0, 1fr);
+}
