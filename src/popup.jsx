@@ -1,3 +1,5 @@
+// src/popup.jsx
+
 import React, { useEffect, useState } from "react";
 import {
   getTrelloCards,
@@ -204,19 +206,11 @@ function Popup() {
   });
   const [error, setError] = useState("");
 
-  // Load saved filters and Trello cards.
   useEffect(() => {
     let cancelled = false;
 
     async function loadSavedFilters() {
       try {
-        if (
-          !window.TrelloPowerUp ||
-          typeof window.TrelloPowerUp.iframe !== "function"
-        ) {
-          throw new Error("Trello Power-Up client is unavailable.");
-        }
-
         const t = window.TrelloPowerUp.iframe();
         const saved = await t.get(
           "board",
@@ -278,7 +272,6 @@ function Popup() {
     };
   }, []);
 
-  // Save filters after initial loading.
   useEffect(() => {
     if (!filtersLoaded) return;
 
@@ -286,6 +279,13 @@ function Popup() {
 
     async function saveSavedFilters() {
       try {
+        if (
+          !window.TrelloPowerUp ||
+          typeof window.TrelloPowerUp.iframe !== "function"
+        ) {
+          throw new Error("Trello Power-Up client is unavailable.");
+        }
+
         const t = window.TrelloPowerUp.iframe();
 
         await t.set(
@@ -308,7 +308,6 @@ function Popup() {
     };
   }, [savedFilters, filtersLoaded]);
 
-  // Close the options menu when clicking elsewhere.
   useEffect(() => {
     function closeMenu() {
       setMenuFilter(null);
@@ -472,7 +471,6 @@ function Popup() {
     closeModal();
   }
 
-  // Apply selected saved filter.
   function selectFilter(savedView) {
     try {
       const filters = {
@@ -489,58 +487,52 @@ function Popup() {
       setSortBy("default");
       setActiveFilter(savedView);
       setMenuFilter(null);
+      setError("");
 
       console.log("Selected filter:", savedView.name);
-      console.log("Filter settings:", filters);
       console.log("Matching cards:", result);
     } catch (err) {
       console.error("Filter selection failed:", err);
-      setError("Could not apply this filter. Check the console.");
+      setError("Could not apply this filter.");
       setFilteredCards([]);
       setActiveFilter(savedView);
     }
   }
 
-  // Sorting always uses a safe default.
-  const safeSortBy = sortBy || "default";
+  const sortedCards = [...filteredCards].sort((a, b) => {
+    if (sortBy === "dueDate") {
+      const dateA = a?.due
+        ? new Date(a.due).getTime()
+        : Infinity;
+      const dateB = b?.due
+        ? new Date(b.due).getTime()
+        : Infinity;
+      return dateA - dateB;
+    }
 
-  const sortedCards = [...(Array.isArray(filteredCards) ? filteredCards : [])]
-    .sort((a, b) => {
-      if (safeSortBy === "dueDate") {
-        const dateA = a?.due
-          ? new Date(a.due).getTime()
-          : Infinity;
-        const dateB = b?.due
-          ? new Date(b.due).getTime()
-          : Infinity;
-
-        return dateA - dateB;
-      }
-
-      if (safeSortBy === "priority") {
-        const getPriority = (card) => {
-          const names = (card?.labels || []).map((label) =>
-            String(label?.name || "").toLowerCase()
-          );
-
-          if (names.some((name) => name.includes("high"))) return 1;
-          if (names.some((name) => name.includes("medium"))) return 2;
-          if (names.some((name) => name.includes("low"))) return 3;
-
-          return 4;
-        };
-
-        return getPriority(a) - getPriority(b);
-      }
-
-      if (safeSortBy === "name") {
-        return String(a?.name || a?.title || "").localeCompare(
-          String(b?.name || b?.title || "")
+    if (sortBy === "priority") {
+      const getPriority = (card) => {
+        const names = (card.labels || []).map((label) =>
+          (label.name || "").toLowerCase()
         );
-      }
 
-      return 0;
-    });
+        if (names.some((name) => name.includes("high"))) return 1;
+        if (names.some((name) => name.includes("medium"))) return 2;
+        if (names.some((name) => name.includes("low"))) return 3;
+        return 4;
+      };
+
+      return getPriority(a) - getPriority(b);
+    }
+
+    if (sortBy === "name") {
+      return String(a.name || a.title || "").localeCompare(
+        String(b.name || b.title || "")
+      );
+    }
+
+    return 0;
+  });
 
   function renderSelect(field, label) {
     return (
@@ -695,25 +687,8 @@ function Popup() {
             <strong>{activeFilter.name}</strong>
             <p>{description(activeFilter.filters)}</p>
 
-            <div
-              className="filtered-results"
-              style={{
-                marginTop: 14,
-                paddingTop: 12,
-                borderTop: "1px solid #e5e7eb",
-              }}
-            >
-              <div
-                className="filtered-results-header"
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 8,
-                  flexWrap: "wrap",
-                  marginBottom: 10,
-                }}
-              >
+            <div className="filtered-results">
+              <div className="filtered-results-header">
                 <strong>Matching cards ({sortedCards.length})</strong>
 
                 <label className="sort-control">
@@ -735,40 +710,12 @@ function Popup() {
                   No matching cards found for this filter.
                 </p>
               ) : (
-                <div
-                  className="filtered-card-list"
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                    marginTop: 10,
-                  }}
-                >
+                <div className="filtered-card-list">
                   {sortedCards.map((card, index) => (
                     <button
                       type="button"
                       className="filtered-card"
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-start",
-                        width: "100%",
-                        padding: "10px 12px",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: 8,
-                        background: "#fff",
-                        color: "#172b4d",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        gap: 4,
-                      }}
-                      key={
-                        card.id ||
-                        card.shortLink ||
-                        card.name ||
-                        card.title ||
-                        index
-                      }
+                      key={card.id || card.shortLink || index}
                       onClick={() => {
                         if (card.id) openTrelloCard(card.id);
                       }}
