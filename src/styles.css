@@ -1595,3 +1595,57 @@ body,
   }
 }
 
+
+/* FINAL FIX: remove nested modal and extra horizontal scroll */
+
+.modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+  overflow: hidden !important;
+  background: rgba(9, 30, 66, 0.58) !important;
+}
+
+.modal-overlay > .modal {
+  position: relative !important;
+  width: min(560px, calc(100vw - 32px)) !important;
+  max-width: 560px !important;
+  height: auto !important;
+  max-height: calc(100dvh - 32px) !important;
+  margin: 0 !important;
+  padding: 24px !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  box-shadow: 0 16px 48px rgba(9, 30, 66, 0.24) !important;
+}
+
+.modal-overlay > .modal .modal-actions {
+  position: static !important;
+  margin: 20px 0 0 !important;
+  padding: 14px 0 0 !important;
+  background: #fff !important;
+}
+
+.modal-overlay > .modal .filter-settings,
+.modal-overlay > .modal .filter-field {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.modal-overlay > .modal .filter-field input,
+.modal-overlay > .modal .filter-field select {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+@media (min-width: 700px) {
+  .modal-overlay > .modal {
+    width: 560px !important;
+  }
+}
