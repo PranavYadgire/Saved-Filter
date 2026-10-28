@@ -1315,3 +1315,97 @@ body,
   }
 }
 
+
+/* Fix horizontal scrolling in Saved Filter Views */
+
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+.app {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 16px;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.saved-list,
+.active-filter,
+.filtered-results,
+.filtered-results-header,
+.filtered-card-list,
+.saved-item,
+.saved-main,
+.saved-text {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.saved-item {
+  width: 100%;
+}
+
+.saved-main {
+  flex: 1;
+  overflow: hidden;
+}
+
+.saved-text {
+  flex: 1;
+  overflow: hidden;
+}
+
+.saved-text strong,
+.saved-text small {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.filtered-card-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.filtered-card {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  box-sizing: border-box;
+}
+
+.filtered-card-title,
+.filtered-card-labels {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.active-filter > strong,
+.active-filter > p {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+img,
+input,
+select,
+button {
+  max-width: 100%;
+}
