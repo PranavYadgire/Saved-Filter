@@ -845,3 +845,30 @@ button:disabled {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Make Saved Filter Views popup wider */
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 380px;
+  margin: 0;
+}
+
+.app {
+  width: 100%;
+  min-width: 380px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.active-filter {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.filtered-card {
+  width: 100%;
+  box-sizing: border-box;
+}
+
