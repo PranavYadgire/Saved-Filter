@@ -982,3 +982,138 @@ button:disabled {
   padding-top: 12px !important;
 }
 
+/* FINAL: compact Create/Edit Filter layout */
+.modal-overlay {
+  padding: 8px !important;
+  overflow: hidden !important;
+}
+
+.modal-overlay > .modal {
+  width: min(560px, calc(100vw - 32px)) !important;
+  max-width: 560px !important;
+  max-height: calc(100vh - 32px) !important;
+  padding: 20px !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+/* Compact heading */
+.modal .modal-header h2 {
+  font-size: 18px !important;
+  white-space: nowrap !important;
+}
+
+.modal .subtitle {
+  margin: 5px 0 12px !important;
+  font-size: 11px !important;
+}
+
+/* Horizontal field rows */
+.modal .filter-settings > .filter-field,
+.modal .filter-settings > label.filter-field {
+  display: grid !important;
+  grid-template-columns: 88px minmax(0, 1fr) !important;
+  align-items: center !important;
+  column-gap: 10px !important;
+  margin-bottom: 7px !important;
+}
+
+.modal .filter-settings .field-label {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  font-size: 11px !important;
+  white-space: nowrap !important;
+}
+
+.modal .filter-settings > .filter-field > select,
+.modal .filter-settings > .filter-field > input,
+.modal .filter-settings > label.filter-field > select,
+.modal .filter-settings > label.filter-field > input {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 5px 8px !important;
+  font-size: 11px !important;
+}
+
+/* Labels stay in the right-hand column */
+.modal .filter-settings > .filter-field:has(.label-options) {
+  align-items: start !important;
+}
+
+.modal .filter-settings .label-options {
+  grid-column: 2 !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 5px !important;
+}
+
+.modal .filter-settings .label-chip {
+  min-height: 27px !important;
+  padding: 5px 8px !important;
+  font-size: 10px !important;
+}
+
+/* Settings heading */
+.modal .filter-settings h3 {
+  margin: 10px 0 !important;
+  padding-bottom: 8px !important;
+  border-bottom: 1px solid #ebecf0 !important;
+}
+
+/* View Name: full-width field */
+.modal > label.filter-field {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 5px !important;
+  margin: 10px 0 !important;
+}
+
+.modal > label.filter-field input {
+  width: 100% !important;
+  height: 34px !important;
+  min-height: 34px !important;
+}
+
+/* Buttons after the form */
+.modal .modal-actions {
+  position: static !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  margin-top: 12px !important;
+  padding-top: 12px !important;
+  background: #fff !important;
+}
+
+.modal .modal-actions button {
+  min-height: 32px !important;
+  padding: 7px 13px !important;
+  font-size: 11px !important;
+}
+
+/* Prevent inner form elements from creating scrollbars */
+.modal .filter-settings,
+.modal .filter-settings > .filter-field,
+.modal .filter-settings > label.filter-field,
+.modal .label-options {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+@media (max-width: 420px) {
+  .modal-overlay > .modal {
+    padding: 14px !important;
+  }
+
+  .modal .filter-settings > .filter-field,
+  .modal .filter-settings > label.filter-field {
+    grid-template-columns: 76px minmax(0, 1fr) !important;
+    column-gap: 7px !important;
+  }
+}
+
