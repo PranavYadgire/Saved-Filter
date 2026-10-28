@@ -691,18 +691,7 @@ function Popup() {
               <div className="filtered-results-header">
                 <strong>Matching cards ({sortedCards.length})</strong>
 
-                <label className="sort-control">
-                  Sort:{" "}
-                  <select
-                    value={sortBy}
-                    onChange={(event) => setSortBy(event.target.value)}
-                  >
-                    <option value="default">Default</option>
-                    <option value="name">Name</option>
-                    <option value="dueDate">Due date</option>
-                    <option value="priority">Priority</option>
-                  </select>
-                </label>
+               
               </div>
 
               {sortedCards.length === 0 ? (
