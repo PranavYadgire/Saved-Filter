@@ -470,34 +470,166 @@ function Popup() {
 
     closeModal();
   }
+  
+function openFilterWindow(savedView, matchingCards) {
+  const filterWindow = window.open(
+    "",
+    "savedFilterViewWindow",
+    "width=1100,height=800,resizable=yes,scrollbars=yes"
+  );
 
-  function selectFilter(savedView) {
-    try {
-      const filters = {
-        ...EMPTY_FILTER,
-        ...(savedView.filters || {}),
-      };
-
-      const result = filterTrelloCards(cards || [], {
-        ...filters,
-        currentMemberId,
-      });
-
-      setFilteredCards(Array.isArray(result) ? result : []);
-      setSortBy("default");
-      setActiveFilter(savedView);
-      setMenuFilter(null);
-      setError("");
-
-      console.log("Selected filter:", savedView.name);
-      console.log("Matching cards:", result);
-    } catch (err) {
-      console.error("Filter selection failed:", err);
-      setError("Could not apply this filter.");
-      setFilteredCards([]);
-      setActiveFilter(savedView);
-    }
+  if (!filterWindow) {
+    alert("Please allow pop-ups for this site.");
+    return;
   }
+
+  const escapeHtml = (value) =>
+    String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    })[char]);
+
+  const cardsHtml = matchingCards.length
+    ? matchingCards.map((card) => `
+        <a class="card" href="${escapeHtml(card.url || "#")}"
+           ${card.url ? 'target="_blank" rel="noopener noreferrer"' : ""}
+           ${card.url ? "" : 'onclick="return false;"'}>
+          <strong>${escapeHtml(card.name || card.title || "Untitled card")}</strong>
+          ${card.due ? `<span>Due: ${escapeHtml(new Date(card.due).toLocaleDateString())}</span>` : ""}
+          ${(card.labels || []).length
+            ? `<span>${escapeHtml(card.labels.map(label => label.name).filter(Boolean).join(", "))}</span>`
+            : ""}
+        </a>
+      `).join("")
+    : '<p class="empty">No matching cards found.</p>';
+
+  filterWindow.document.open();
+  filterWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>${escapeHtml(savedView.name)} - Saved Filter Views</title>
+      <style>
+        * { box-sizing: border-box; }
+        body {
+          margin: 0;
+          padding: 32px;
+          background: #f7f8fa;
+          color: #172b4d;
+          font-family: Arial, sans-serif;
+        }
+        .container { max-width: 1000px; margin: auto; }
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          flex-wrap: wrap;
+          margin-bottom: 24px;
+        }
+        h1 { margin: 0 0 10px; font-size: 28px; }
+        .description { color: #44546f; }
+        .count {
+          background: #e9f2ff;
+          color: #0c66e4;
+          padding: 10px 16px;
+          border-radius: 20px;
+          font-weight: bold;
+        }
+        h2 { font-size: 19px; margin: 0 0 16px; }
+        .cards {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+          gap: 16px;
+        }
+        .card {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          padding: 20px;
+          min-height: 100px;
+          background: white;
+          border: 1px solid #dfe1e6;
+          border-radius: 12px;
+          text-decoration: none;
+          color: #172b4d;
+          overflow-wrap: anywhere;
+        }
+        .card:hover {
+          border-color: #0c66e4;
+          box-shadow: 0 3px 10px #091e4214;
+        }
+        .card span { font-size: 13px; color: #626f86; }
+        .empty { padding: 24px; background: white; border-radius: 12px; }
+        @media (max-width: 600px) {
+          body { padding: 18px; }
+          .cards { grid-template-columns: 1fr; }
+        }
+      </style>
+    </head>
+    <body>
+      <main class="container">
+        <header class="header">
+          <div>
+            <h1>${escapeHtml(savedView.name)}</h1>
+            <div class="description">${escapeHtml(
+              description(savedView.filters)
+            )}</div>
+          </div>
+          <div class="count">${matchingCards.length} matching cards</div>
+        </header>
+        <section>
+          <h2>Matching cards</h2>
+          <div class="cards">${cardsHtml}</div>
+        </section>
+      </main>
+    </body>
+    </html>
+  `);
+  filterWindow.document.close();
+}
+
+
+
+function selectFilter(savedView) {
+  try {
+    const filters = {
+      ...EMPTY_FILTER,
+      ...(savedView.filters || {}),
+    };
+
+    const result = filterTrelloCards(cards || [], {
+      ...filters,
+      currentMemberId,
+    });
+
+    const matchingCards = Array.isArray(result) ? result : [];
+
+    setFilteredCards(matchingCards);
+    setSortBy("default");
+    setActiveFilter(savedView);
+    setMenuFilter(null);
+    setError("");
+
+    // Open matching results in a separate, wider window.
+    openFilterWindow(savedView, matchingCards);
+
+    console.log("Selected filter:", savedView.name);
+    console.log("Matching cards:", matchingCards);
+  } catch (err) {
+    console.error("Filter selection failed:", err);
+    setError("Could not apply this filter.");
+    setFilteredCards([]);
+    setActiveFilter(savedView);
+  }
+}
+
+   
 
   const sortedCards = [...filteredCards].sort((a, b) => {
     if (sortBy === "dueDate") {
@@ -693,6 +825,7 @@ function Popup() {
 
                
               </div>
+
 
               {sortedCards.length === 0 ? (
                 <p className="no-matching-cards">
